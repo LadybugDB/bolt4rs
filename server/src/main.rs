@@ -89,7 +89,7 @@ impl BoltSession {
 
             // RUN
             (0xB3, 0x10) => {
-                if !self.authenticated {
+                if (!self.authenticated) {
                     return Err(anyhow::anyhow!("Not authenticated"));
                 }
 
@@ -164,9 +164,8 @@ async fn handle_connection(socket: TcpStream) -> Result<()> {
         return Err(anyhow::anyhow!("Invalid Bolt magic bytes"));
     }
 
-    // Send version 4.1 (supported by client)
-    let version: u32 = 0x0401_0000;
-    stream.write_u32(version).await?;
+    // Send version 4.1 in correct format [0, 0, 1, 4]
+    stream.write_all(&[0, 0, 1, 4]).await?;
     stream.flush().await?;
 
     let mut session = BoltSession::new();
