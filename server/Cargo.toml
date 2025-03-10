@@ -10,3 +10,11 @@ log = "0.4"
 env_logger = "0.10"
 neo4rs = { path = "../lib" }
 anyhow = "1.0"
+
+[[bin]]
+name = "neo4rs-server"
+path = "src/main.rs"
+
+[[bin]]
+name = "test_client"
+path = "src/bin/test_client.rs"
