@@ -10,6 +10,7 @@ log = "0.4"
 env_logger = "0.10"
 bolt4rs = { path = "../lib" }
 anyhow = "1.0"
+kuzu = "^0.8.2"
 
 [[bin]]
 name = "bolt4rs-server"

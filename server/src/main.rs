@@ -1,7 +1,9 @@
 use anyhow::Result;
 use bytes::{BufMut, Bytes, BytesMut};
+use kuzu::{Connection, Database, Error, SystemConfig};
 use log::{debug, error, info};
 use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, BufStream},
     net::{TcpListener, TcpStream},
@@ -12,7 +14,7 @@ const MAX_CHUNK_SIZE: usize = 65_535;
 #[tokio::main]
 async fn main() -> Result<()> {
     env_logger::init();
-
+    let system_db = Arc::new(kuzu_init().await?);
     let listener = TcpListener::bind("127.0.0.1:7687").await?;
     debug!("Bolt server listening on 127.0.0.1:7687");
 
@@ -20,15 +22,22 @@ async fn main() -> Result<()> {
         let (socket, addr) = listener.accept().await?;
         debug!("New connection from {}", addr);
 
+        let db = system_db.clone();
         tokio::spawn(async move {
-            if let Err(e) = handle_connection(socket).await {
+            if let Err(e) = handle_connection(&db, socket).await {
                 error!("Connection error: {}", e);
             }
         });
     }
 }
 
-async fn handle_connection(socket: TcpStream) -> Result<()> {
+async fn kuzu_init() -> Result<kuzu::Database> {
+    let system_db = Database::new("./system", SystemConfig::default())?;
+    debug!("Created system database");
+    Ok(system_db)
+}
+
+async fn handle_connection(system_db: &Arc<kuzu::Database>, socket: TcpStream) -> Result<()> {
     let mut stream = BufStream::new(socket);
 
     // Read first 4 bytes - these should be the magic bytes
