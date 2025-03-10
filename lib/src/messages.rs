@@ -241,8 +241,8 @@ impl BoltResponse {
 
     pub fn into_error(self, msg: &'static str) -> Error {
         match self {
-            BoltResponse::Failure(failure) => Error::Neo4j(failure.into_error()),
-            BoltResponse::Ignore(ignore) => Error::Neo4j(ignore.into_error()),
+            BoltResponse::Failure(failure) => Error::Bolt(failure.into_error()),
+            BoltResponse::Ignore(ignore) => Error::Bolt(ignore.into_error()),
             _ => Error::UnexpectedMessage(format!("unexpected response for {}: {:?}", msg, self)),
         }
     }

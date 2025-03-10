@@ -1,20 +1,20 @@
 use lenient_semver::Version;
 use neo4rs::{ConfigBuilder, Graph};
 use testcontainers::{runners::AsyncRunner, ContainerAsync, ContainerRequest, ImageExt};
-use testcontainers_modules::neo4j::{Neo4j, Neo4jImage};
+use testcontainers_modules::bolt::{Bolt, BoltImage};
 
 use std::{error::Error, io::BufRead as _};
 
 #[allow(dead_code)]
 #[derive(Default)]
-pub struct Neo4jContainerBuilder {
+pub struct BoltContainerBuilder {
     enterprise: bool,
     config: ConfigBuilder,
     env: Vec<(String, String)>,
 }
 
 #[allow(dead_code)]
-impl Neo4jContainerBuilder {
+impl BoltContainerBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -43,23 +43,23 @@ impl Neo4jContainerBuilder {
     }
 
     pub fn with_server_config(self, key: &str, value: impl Into<String>) -> Self {
-        let key = format!("NEO4J_{}", key.replace('_', "__").replace('.', "_"));
+        let key = format!("BOLT_{}", key.replace('_', "__").replace('.', "_"));
         self.add_env(key, value)
     }
 
-    pub async fn start(self) -> Result<Neo4jContainer, Box<dyn Error + Send + Sync + 'static>> {
-        Neo4jContainer::from_config_and_edition_and_env(self.config, self.enterprise, self.env)
+    pub async fn start(self) -> Result<BoltContainer, Box<dyn Error + Send + Sync + 'static>> {
+        BoltContainer::from_config_and_edition_and_env(self.config, self.enterprise, self.env)
             .await
     }
 }
 
-pub struct Neo4jContainer {
+pub struct BoltContainer {
     graph: Graph,
     version: String,
-    _container: Option<ContainerAsync<Neo4jImage>>,
+    _container: Option<ContainerAsync<BoltImage>>,
 }
 
-impl Neo4jContainer {
+impl BoltContainer {
     #[allow(dead_code)]
     pub async fn new() -> Self {
         Self::from_config(ConfigBuilder::default()).await
@@ -127,9 +127,9 @@ impl Neo4jContainer {
     }
 
     fn server_from_env() -> TestServer {
-        const TEST_URI_VAR: &str = "NEO4J_TEST_URI";
+        const TEST_URI_VAR: &str = "BOLT_TEST_URI";
         const CHECK_AURA_VAR: &str = "NEO4RS_TEST_ON_AURA";
-        const AURA_URI_VAR: &str = "NEO4J_URI";
+        const AURA_URI_VAR: &str = "BOLT_URI";
 
         use std::env::var;
 
@@ -145,7 +145,7 @@ impl Neo4jContainer {
         connection: &TestConnection,
         enterprise: bool,
         env_vars: I,
-    ) -> Result<(String, ContainerAsync<Neo4jImage>), Box<dyn Error + Send + Sync + 'static>>
+    ) -> Result<(String, ContainerAsync<BoltImage>), Box<dyn Error + Send + Sync + 'static>>
     where
         I: Iterator<Item = (String, String)>,
     {
@@ -161,11 +161,11 @@ impl Neo4jContainer {
         connection: &TestConnection,
         enterprise: bool,
         env_vars: I,
-    ) -> Result<ContainerRequest<Neo4jImage>, Box<dyn Error + Send + Sync + 'static>>
+    ) -> Result<ContainerRequest<BoltImage>, Box<dyn Error + Send + Sync + 'static>>
     where
         I: Iterator<Item = (String, String)>,
     {
-        let image = Neo4j::new()
+        let image = Bolt::new()
             .with_user(connection.auth.user.to_owned())
             .with_password(connection.auth.pass.to_owned());
 
@@ -173,7 +173,7 @@ impl Neo4jContainer {
             const ACCEPTANCE_FILE_NAME: &str = "container-license-acceptance.txt";
 
             let version = format!("{}-enterprise", connection.version);
-            let image_name = format!("neo4j:{}", version);
+            let image_name = format!("bolt:{}", version);
 
             let acceptance_file = std::env::current_dir()
                 .ok()
@@ -189,7 +189,7 @@ impl Neo4jContainer {
             if !has_license_acceptance {
                 return Err(format!(
                     concat!(
-                        "You need to accept the Neo4j Enterprise Edition license by ",
+                        "You need to accept the Bolt Enterprise Edition license by ",
                         "creating the file `{}` with the following content:\n\n\t{}",
                     ),
                     acceptance_file.map_or_else(
@@ -204,7 +204,7 @@ impl Neo4jContainer {
             env_vars.fold(
                 image
                     .with_version(version)
-                    .with_env_var("NEO4J_ACCEPT_LICENSE_AGREEMENT", "yes"),
+                    .with_env_var("BOLT_ACCEPT_LICENSE_AGREEMENT", "yes"),
                 |i, (k, v)| i.with_env_var(k, v),
             )
         } else {
@@ -215,13 +215,13 @@ impl Neo4jContainer {
     }
 
     fn create_test_endpoint(use_aura: bool) -> TestConnection {
-        const USER_VAR: &str = "NEO4J_TEST_USER";
-        const AURA_USER_VAR: &str = "NEO4J_USERNAME";
-        const PASS_VAR: &str = "NEO4J_TEST_PASS";
-        const AURA_PASS_VAR: &str = "NEO4J_PASSWORD";
-        const VERSION_VAR: &str = "NEO4J_VERSION_TAG";
+        const USER_VAR: &str = "BOLT_TEST_USER";
+        const AURA_USER_VAR: &str = "BOLT_USERNAME";
+        const PASS_VAR: &str = "BOLT_TEST_PASS";
+        const AURA_PASS_VAR: &str = "BOLT_PASSWORD";
+        const VERSION_VAR: &str = "BOLT_VERSION_TAG";
 
-        const DEFAULT_USER: &str = "neo4j";
+        const DEFAULT_USER: &str = "bolt";
         const DEFAULT_PASS: &str = "neo";
         const DEFAULT_VERSION_TAG: &str = "5";
 

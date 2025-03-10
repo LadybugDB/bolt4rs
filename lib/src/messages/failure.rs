@@ -1,5 +1,5 @@
 use crate::{
-    errors::Neo4jError,
+    errors::BoltError,
     types::{serde::DeError, BoltMap},
     BoltType,
 };
@@ -20,14 +20,14 @@ impl Failure {
         self.metadata.get::<T>(key)
     }
 
-    pub(crate) fn into_error(self) -> Neo4jError {
+    pub(crate) fn into_error(self) -> BoltError {
         let mut meta = self.metadata.value;
         let (code, message) = (meta.remove("code"), meta.remove("message"));
         let (code, message) = match (code, message) {
             (Some(BoltType::String(s)), Some(BoltType::String(m))) => (s.value, m.value),
             _ => (String::new(), String::new()),
         };
-        Neo4jError::new(code, message)
+        BoltError::new(code, message)
     }
 }
 

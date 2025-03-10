@@ -2,16 +2,16 @@
 name = "neo4rs"
 version = "0.9.0-rc.6"
 authors = [
-    "Neo4j Labs <devrel@neo4j.com>",
+    "Bolt Labs <devrel@bolt.com>",
     "John Pradeep Vincent <yehohanan7@gmail.com>",
 ]
 edition = "2021"
-description = "Rust driver for Neo4j"
+description = "Rust driver for Bolt"
 license = "MIT"
 repository = "https://github.com/neo4j-labs/neo4rs"
 documentation = "https://docs.rs/neo4rs"
 readme = "../README.md"
-keywords = ["neo4j", "driver", "bolt", "cypher", "tokio"]
+keywords = ["bolt", "driver", "bolt", "cypher", "tokio"]
 categories = ["database", "network-programming", "asynchronous"]
 rust-version = "1.75.0"
 
@@ -63,7 +63,6 @@ features = ["managed"]
 version = "0.26.0"
 default-features = false
 features = ["tls12", "ring"]
-
 
 [dev-dependencies]
 aws-lc-rs = "1.10.0"

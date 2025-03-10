@@ -4,10 +4,10 @@ mod container;
 
 #[tokio::test]
 async fn points() {
-    let neo4j = container::Neo4jContainer::new().await;
-    let graph = neo4j.graph();
+    let bolt = container::BoltContainer::new().await;
+    let graph = bolt.graph();
 
-    let distance = if neo4j.version().major >= 5 {
+    let distance = if bolt.version().major >= 5 {
         "point.distance(p1,p2)"
     } else {
         "distance(p1,p2)"

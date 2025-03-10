@@ -167,8 +167,8 @@ impl BoltSession {
                 // Server field
                 response.put_u8(0x86); // tiny string, size 6
                 response.put_slice(b"server");
-                response.put_u8(0x85); // tiny string, size 5
-                response.put_slice(b"Neo4j");
+                response.put_u8(0x84); // tiny string, size 4
+                response.put_slice(b"Bolt");
 
                 // Connection id
                 response.put_u8(0x8D); // tiny string, size 13

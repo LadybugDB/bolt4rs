@@ -39,7 +39,7 @@ pub struct Failure {
 impl Failure {
     pub fn into_error(self) -> crate::errors::Error {
         let Self { code, message } = self;
-        crate::errors::Error::Neo4j(crate::errors::Neo4jError::new(code, message))
+        crate::errors::Error::Bolt(crate::errors::BoltError::new(code, message))
     }
 }
 

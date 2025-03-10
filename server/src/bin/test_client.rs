@@ -3,7 +3,7 @@ use neo4rs::*;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let uri = "127.0.0.1:7687";
-    let user = "neo4j";
+    let user = "bolt";
     let pass = "test";
 
     println!("Connecting to Bolt server at {}", uri);

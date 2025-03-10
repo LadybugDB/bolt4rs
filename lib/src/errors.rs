@@ -67,8 +67,8 @@ pub enum Error {
     )]
     ProtocolMismatch(u32),
 
-    #[error("Neo4j error `{}`: {}", .0.code, .0.message)]
-    Neo4j(Neo4jError),
+    #[error("Bolt error `{}`: {}", .0.code, .0.message)]
+    Bolt(BoltError),
 
     #[error("{0}")]
     UnexpectedMessage(String),
@@ -114,16 +114,16 @@ pub enum Error {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Neo4jErrorKind {
-    Client(Neo4jClientErrorKind),
+pub enum BoltErrorKind {
+    Client(BoltClientErrorKind),
     Transient,
     Database,
     Unknown,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Neo4jClientErrorKind {
-    Security(Neo4jSecurityErrorKind),
+pub enum BoltClientErrorKind {
+    Security(BoltSecurityErrorKind),
     SessionExpired,
     FatalDiscovery,
     TransactionTerminated,
@@ -133,7 +133,7 @@ pub enum Neo4jClientErrorKind {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Neo4jSecurityErrorKind {
+pub enum BoltSecurityErrorKind {
     Authentication,
     AuthorizationExpired,
     TokenExpired,
@@ -141,7 +141,7 @@ pub enum Neo4jSecurityErrorKind {
     Unknown,
 }
 
-impl Neo4jErrorKind {
+impl BoltErrorKind {
     pub(crate) fn new(code: &str) -> Self {
         let code = Self::adjust_code(code).unwrap_or(code);
         Self::classify(code)
@@ -166,35 +166,35 @@ impl Neo4jErrorKind {
         match class {
             Some("ClientError") => match (subclass, kind) {
                 (Some("Security"), Some("Unauthorized")) => Self::Client(
-                    Neo4jClientErrorKind::Security(Neo4jSecurityErrorKind::Authentication),
+                    BoltClientErrorKind::Security(BoltSecurityErrorKind::Authentication),
                 ),
                 (Some("Security"), Some("AuthorizationExpired")) => Self::Client(
-                    Neo4jClientErrorKind::Security(Neo4jSecurityErrorKind::AuthorizationExpired),
+                    BoltClientErrorKind::Security(BoltSecurityErrorKind::AuthorizationExpired),
                 ),
                 (Some("Security"), Some("TokenExpired")) => Self::Client(
-                    Neo4jClientErrorKind::Security(Neo4jSecurityErrorKind::TokenExpired),
+                    BoltClientErrorKind::Security(BoltSecurityErrorKind::TokenExpired),
                 ),
                 (Some("Database"), Some("DatabaseNotFound")) => {
-                    Self::Client(Neo4jClientErrorKind::FatalDiscovery)
+                    Self::Client(BoltClientErrorKind::FatalDiscovery)
                 }
                 (Some("Transaction"), Some("Terminated")) => {
-                    Self::Client(Neo4jClientErrorKind::TransactionTerminated)
+                    Self::Client(BoltClientErrorKind::TransactionTerminated)
                 }
-                (Some("Security"), Some(_)) => Self::Client(Neo4jClientErrorKind::Security(
-                    Neo4jSecurityErrorKind::Other,
+                (Some("Security"), Some(_)) => Self::Client(BoltClientErrorKind::Security(
+                    BoltSecurityErrorKind::Other,
                 )),
-                (Some("Security"), _) => Self::Client(Neo4jClientErrorKind::Security(
-                    Neo4jSecurityErrorKind::Unknown,
+                (Some("Security"), _) => Self::Client(BoltClientErrorKind::Security(
+                    BoltSecurityErrorKind::Unknown,
                 )),
-                (Some("Request"), _) => Self::Client(Neo4jClientErrorKind::ProtocolViolation),
+                (Some("Request"), _) => Self::Client(BoltClientErrorKind::ProtocolViolation),
                 (Some("Cluster"), Some("NotALeader")) => {
-                    Self::Client(Neo4jClientErrorKind::SessionExpired)
+                    Self::Client(BoltClientErrorKind::SessionExpired)
                 }
                 (Some("General"), Some("ForbiddenOnReadOnlyDatabase")) => {
-                    Self::Client(Neo4jClientErrorKind::SessionExpired)
+                    Self::Client(BoltClientErrorKind::SessionExpired)
                 }
-                (Some(_), _) => Self::Client(Neo4jClientErrorKind::Other),
-                _ => Self::Client(Neo4jClientErrorKind::Unknown),
+                (Some(_), _) => Self::Client(BoltClientErrorKind::Other),
+                _ => Self::Client(BoltClientErrorKind::Unknown),
             },
             Some("TransientError") => Self::Transient,
             Some(_) => Self::Database,
@@ -206,8 +206,8 @@ impl Neo4jErrorKind {
         matches!(
             self,
             Self::Client(
-                Neo4jClientErrorKind::Security(Neo4jSecurityErrorKind::AuthorizationExpired)
-                    | Neo4jClientErrorKind::SessionExpired
+                BoltClientErrorKind::Security(BoltSecurityErrorKind::AuthorizationExpired)
+                    | BoltClientErrorKind::SessionExpired
             ) | Self::Transient
         )
     }
@@ -215,18 +215,18 @@ impl Neo4jErrorKind {
     #[allow(unused)]
     pub(crate) fn is_fatal(&self) -> bool {
         match self {
-            Self::Client(Neo4jClientErrorKind::ProtocolViolation) => true,
+            Self::Client(BoltClientErrorKind::ProtocolViolation) => true,
             Self::Client(_) | Self::Transient => false,
             _ => true,
         }
     }
 
-    pub(crate) fn new_error(self, code: String, message: String) -> Neo4jError {
+    pub(crate) fn new_error(self, code: String, message: String) -> BoltError {
         let code = Self::adjust_code(&code)
             .map(|s| s.to_owned())
             .unwrap_or(code);
 
-        Neo4jError {
+        BoltError {
             kind: self,
             code,
             message,
@@ -234,25 +234,25 @@ impl Neo4jErrorKind {
     }
 }
 
-impl From<&str> for Neo4jErrorKind {
+impl From<&str> for BoltErrorKind {
     fn from(code: &str) -> Self {
         Self::new(code)
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Neo4jError {
-    kind: Neo4jErrorKind,
+pub struct BoltError {
+    kind: BoltErrorKind,
     code: String,
     message: String,
 }
 
-impl Neo4jError {
+impl BoltError {
     pub(crate) fn new(code: String, message: String) -> Self {
-        Neo4jErrorKind::new(&code).new_error(code, message)
+        BoltErrorKind::new(&code).new_error(code, message)
     }
 
-    pub fn kind(&self) -> Neo4jErrorKind {
+    pub fn kind(&self) -> BoltErrorKind {
         self.kind
     }
 

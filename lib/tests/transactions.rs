@@ -4,8 +4,8 @@ mod container;
 
 #[tokio::test]
 async fn transactions() {
-    let neo4j = container::Neo4jContainer::new().await;
-    let graph = neo4j.graph();
+    let bolt = container::BoltContainer::new().await;
+    let graph = bolt.graph();
 
     include!("../include/transactions.rs");
 }

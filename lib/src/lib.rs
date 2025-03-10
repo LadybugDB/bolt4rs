@@ -1,9 +1,9 @@
-//! Neo4j driver compatible with neo4j 4.x versions
+//! Bolt driver compatible with bolt 4.x versions
 //!
-//! * An implementation of the [bolt protocol][bolt] to interact with Neo4j server
+//! * An implementation of the [bolt protocol][bolt] to interact with Bolt server
 //! * async/await apis using [tokio][tokio]
 //! * Supports bolt 4.2 specification
-//! * tested with Neo4j versions: 4.0, 4.1, 4.2
+//! * tested with Bolt versions: 4.0, 4.1, 4.2
 //!
 //!
 //! [bolt]: https://7687.org/
@@ -18,7 +18,7 @@
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let id = uuid::Uuid::new_v4().to_string();
 //!
@@ -33,7 +33,7 @@
 //! Use the config builder to override the default configurations like
 //! * `fetch_size` - number of rows to fetch in batches (default is 200)
 //! * `max_connections` - maximum size of the connection pool (default is 16)
-//! * `db` - the database to connect to (default is `neo4j`)
+//! * `db` - the database to connect to (default is `bolt`)
 //!
 //! ```no_run
 //! use neo4rs::*;
@@ -42,9 +42,9 @@
 //! async fn main() {
 //!    let config = ConfigBuilder::default()
 //!        .uri("127.0.0.1:7687")
-//!        .user("neo4j")
+//!        .user("bolt")
 //!        .password("neo")
-//!        .db("neo4j")
+//!        .db("bolt")
 //!        .fetch_size(500)
 //!        .max_connections(10)
 //!        .build()
@@ -66,7 +66,7 @@
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -89,7 +89,7 @@
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -112,7 +112,7 @@
 //! async fn main() {
 //!    let config = ConfigBuilder::default()
 //!        .uri("127.0.0.1:7687")
-//!        .user("neo4j")
+//!        .user("bolt")
 //!        .password("neo")
 //!        .fetch_size(1)
 //!        .build()
@@ -139,7 +139,7 @@
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -160,7 +160,7 @@ use neo4rs::*;
 #[tokio::main]
 async fn main() {
     let uri = "127.0.0.1:7687";
-    let user = "neo4j";
+    let user = "bolt";
     let pass = "neo";
     let graph = Graph::new(uri, user, pass).unwrap();
 
@@ -182,7 +182,7 @@ async fn main() {
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -207,7 +207,7 @@ async fn main() {
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -227,7 +227,7 @@ async fn main() {
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -244,7 +244,7 @@ async fn main() {
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -266,7 +266,7 @@ async fn main() {
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -289,7 +289,7 @@ async fn main() {
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -307,7 +307,7 @@ async fn main() {
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -327,7 +327,7 @@ async fn main() {
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -356,7 +356,7 @@ async fn main() {
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -373,7 +373,7 @@ async fn main() {
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -404,7 +404,7 @@ async fn main() {
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -420,7 +420,7 @@ async fn main() {
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -439,7 +439,7 @@ async fn main() {
 //! #[tokio::main]
 //! async fn main() {
 //!    let uri = "127.0.0.1:7687";
-//!    let user = "neo4j";
+//!    let user = "bolt";
 //!    let pass = "neo";
 //!    let graph = Graph::new(uri, user, pass).unwrap();
 //!
@@ -474,7 +474,7 @@ mod version;
 pub use crate::auth::ClientCertificate;
 pub use crate::config::{Config, ConfigBuilder, Database};
 pub use crate::errors::{
-    Error, Neo4jClientErrorKind, Neo4jError, Neo4jErrorKind, Neo4jSecurityErrorKind, Result,
+    Error, BoltClientErrorKind, BoltError, BoltErrorKind, BoltSecurityErrorKind, Result,
 };
 pub use crate::graph::{query, Graph};
 pub use crate::query::{Query, QueryParameter, RunResult};

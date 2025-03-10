@@ -5,15 +5,15 @@ use neo4rs::{ConfigBuilder, Graph};
 async fn main() {
     pretty_env_logger::init();
 
-    let neo4j_uri = std::env::var("NEO4J_URI").unwrap();
-    let neo4j_username = std::env::var("NEO4J_USERNAME").unwrap();
-    let neo4j_password = std::env::var("NEO4J_PASSWORD").unwrap();
+    let bolt_uri = std::env::var("BOLT_URI").unwrap();
+    let bolt_username = std::env::var("BOLT_USERNAME").unwrap();
+    let bolt_password = std::env::var("BOLT_PASSWORD").unwrap();
 
     let graph = Graph::connect(
         ConfigBuilder::new()
-            .uri(neo4j_uri)
-            .user(neo4j_username)
-            .password(neo4j_password)
+            .uri(bolt_uri)
+            .user(bolt_username)
+            .password(bolt_password)
             .max_connections(420)
             .build()
             .unwrap(),

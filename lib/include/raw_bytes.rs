@@ -1,5 +1,5 @@
 { 
-    let bytes = b"Hello, Neo4j!";
+    let bytes = b"Hello, Bolt!";
     let mut result = graph
         .execute(query("RETURN $b as output").param("b", bytes.as_ref()))
         .await

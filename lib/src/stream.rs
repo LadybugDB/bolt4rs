@@ -287,7 +287,7 @@ impl RowStream {
                 }?;
                 let summary = match summary {
                     crate::messages::BoltResponse::Success(_) => Ok(()),
-                    crate::messages::BoltResponse::Failure(f) => Err(Error::Neo4j(f.into_error())),
+                    crate::messages::BoltResponse::Failure(f) => Err(Error::Bolt(f.into_error())),
                     msg => Err(msg.into_error("DISCARD")),
                 };
                 self.state = State::Complete(());

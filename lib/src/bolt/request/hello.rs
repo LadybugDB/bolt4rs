@@ -245,14 +245,14 @@ mod tests {
         let data = bolt()
             .tiny_map(2)
             .tiny_string("server")
-            .tiny_string("Neo4j/4.1.4")
+            .tiny_string("Bolt/4.1.4")
             .tiny_string("connection_id")
             .tiny_string("bolt-31")
             .build();
 
         let response = Response::parse(data).unwrap();
 
-        assert_eq!(response.server, "Neo4j/4.1.4");
+        assert_eq!(response.server, "Bolt/4.1.4");
         assert_eq!(response.connection_id, "bolt-31");
     }
 }

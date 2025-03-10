@@ -79,7 +79,7 @@ mod tests {
             Routing::Yes(vec![("address".into(), "localhost:7687".into())]),
             vec!["bookmark"],
         )
-        .with_db(Database::from("neo4j"))
+        .with_db(Database::from("bolt"))
         .build(Version::V4_3);
         let bytes = route.to_bytes().unwrap();
 
@@ -90,7 +90,7 @@ mod tests {
             .tiny_string("localhost:7687")
             .tiny_list(1)
             .tiny_string("bookmark")
-            .tiny_string("neo4j")
+            .tiny_string("bolt")
             .build();
 
         assert_eq!(bytes, expected);
@@ -151,7 +151,7 @@ mod tests {
             vec!["bookmark"],
         );
         let route = builder
-            .with_db("neo4j".into())
+            .with_db("bolt".into())
             .with_imp_user("Foo")
             .build(Version::V4_4);
         let serialized = route.to_bytes().unwrap();
@@ -165,7 +165,7 @@ mod tests {
             .tiny_string("bookmark")
             .tiny_map(2)
             .tiny_string("db")
-            .tiny_string("neo4j")
+            .tiny_string("bolt")
             .tiny_string("imp_user")
             .tiny_string("Foo")
             .build();
@@ -182,7 +182,7 @@ mod tests {
             .tiny_string("ttl")
             .int64(1000)
             .tiny_string("db")
-            .tiny_string("neo4j")
+            .tiny_string("bolt")
             .tiny_string("servers")
             .tiny_list(1)
             .tiny_map(2)
@@ -196,7 +196,7 @@ mod tests {
         let response = Response::parse(data).unwrap();
 
         assert_eq!(response.rt.ttl, 1000);
-        assert_eq!(response.rt.db.unwrap().as_ref(), "neo4j");
+        assert_eq!(response.rt.db.unwrap().as_ref(), "bolt");
         assert_eq!(response.rt.servers.len(), 1);
     }
 }

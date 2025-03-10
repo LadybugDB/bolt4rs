@@ -70,12 +70,12 @@ async fn refresh_routing_table(
     debug!("Routing table refreshed: {:?}", routing_table);
     let servers = routing_table.resolve();
     let url = NeoUrl::parse(config.uri.as_str())?;
-    // Convert neo4j scheme to bolt scheme to create connection pools.
+    // Convert bolt scheme to bolt scheme to create connection pools.
     // We need to use the bolt scheme since we don't want new connections to be routed
     let scheme = match url.scheme() {
-        "neo4j" => "bolt",
-        "neo4j+s" => "bolt+s",
-        "neo4j+ssc" => "bolt+ssc",
+        "bolt" => "bolt",
+        "bolt+s" => "bolt+s",
+        "bolt+ssc" => "bolt+ssc",
         _ => panic!("Unsupported scheme: {}", url.scheme()),
     };
 
@@ -244,11 +244,11 @@ mod tests {
                 .collect(),
         };
         let config = Config {
-            uri: "neo4j://localhost:7687".to_string(),
+            uri: "bolt://localhost:7687".to_string(),
             user: "user".to_string(),
             password: "password".to_string(),
             max_connections: 10,
-            db: Some("neo4j".into()),
+            db: Some("bolt".into()),
             fetch_size: 0,
             tls_config: ConnectionTLSConfig::None,
         };

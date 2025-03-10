@@ -1,4 +1,5 @@
 use crate::auth::ConnectionTLSConfig;
+use log::debug;
 #[cfg(not(feature = "unstable-bolt-protocol-impl-v2"))]
 use crate::messages::HelloBuilder;
 #[cfg(feature = "unstable-bolt-protocol-impl-v2")]
@@ -6,7 +7,6 @@ use {
     crate::bolt::{
         ExpectedResponse, Hello, HelloBuilder, Message, MessageResponse, Reset, Summary,
     },
-    log::debug,
 };
 
 #[cfg(feature = "unstable-bolt-protocol-impl-v2")]
@@ -86,7 +86,7 @@ impl Connection {
         let mut response = [0, 0, 0, 0];
         stream.read_exact(&mut response).await?;
         let version = Version::parse(response)?;
-        debug!("Connected to Neo4j with version {}", version); // Changed to debug
+        debug!("Connected to Bolt with version {}", version); // Changed to debug
         Ok(version)
     }
 
@@ -143,7 +143,7 @@ impl Connection {
         {
             match self.send_recv(BoltRequest::reset()).await? {
                 BoltResponse::Success(_) => Ok(()),
-                BoltResponse::Failure(f) => Err(Error::Neo4j(f.into_error())),
+                BoltResponse::Failure(f) => Err(Error::Bolt(f.into_error())),
                 msg => Err(msg.into_error("RESET")),
             }
         }
@@ -330,9 +330,9 @@ impl ConnectionInfo {
             "bolt" | "" => (false, false, false),
             "bolt+s" => (false, true, true),
             "bolt+ssc" => (false, true, false),
-            "neo4j" => (true, false, false),
-            "neo4j+s" => (true, true, true),
-            "neo4j+ssc" => (true, true, false),
+            "bolt" => (true, false, false),
+            "bolt+s" => (true, true, true),
+            "bolt+ssc" => (true, true, false),
             otherwise => return Err(Error::UnsupportedScheme(otherwise.to_owned())),
         };
 

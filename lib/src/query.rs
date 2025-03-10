@@ -16,7 +16,7 @@ pub type RunResult = ResultSummary;
 #[cfg(not(feature = "unstable-bolt-protocol-impl-v2"))]
 pub type RunResult = ();
 
-/// Abstracts a cypher query that is sent to neo4j server.
+/// Abstracts a cypher query that is sent to bolt server.
 #[derive(Clone)]
 pub struct Query {
     query: String,
@@ -192,7 +192,7 @@ type QueryResult<T> = Result<T, backoff::Error<Error>>;
 fn wrap_error<T>(resp: impl IntoError, req: &'static str) -> QueryResult<T> {
     let error = resp.into_error(req);
     let can_retry = match &error {
-        Error::Neo4j(e) => e.can_retry(),
+        Error::Bolt(e) => e.can_retry(),
         _ => false,
     };
 
@@ -210,7 +210,7 @@ trait IntoError {
 impl IntoError for Result<BoltResponse> {
     fn into_error(self, msg: &'static str) -> Error {
         match self {
-            Ok(BoltResponse::Failure(failure)) => Error::Neo4j(failure.into_error()),
+            Ok(BoltResponse::Failure(failure)) => Error::Bolt(failure.into_error()),
             Ok(resp) => resp.into_error(msg),
             Err(e) => e,
         }

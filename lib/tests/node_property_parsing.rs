@@ -5,8 +5,8 @@ mod container;
 
 #[tokio::test]
 async fn node_property_parsing() {
-    let neo4j = container::Neo4jContainer::new().await;
-    let graph = neo4j.graph();
+    let bolt = container::BoltContainer::new().await;
+    let graph = bolt.graph();
 
     graph
         .run(

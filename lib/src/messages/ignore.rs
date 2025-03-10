@@ -1,4 +1,4 @@
-use crate::errors::Neo4jError;
+use crate::errors::BoltError;
 use neo4rs_macros::BoltStruct;
 
 #[derive(Debug, PartialEq, Clone, BoltStruct)]
@@ -6,8 +6,8 @@ use neo4rs_macros::BoltStruct;
 pub struct Ignore;
 
 impl Ignore {
-    pub(crate) fn into_error(self) -> Neo4jError {
-        Neo4jError::new(
+    pub(crate) fn into_error(self) -> BoltError {
+        BoltError::new(
             "Neo.ServerError.Ignored".into(),
             "The request was ignored by the server because it is in a FAILED or INTERRUPTED state"
                 .into(),

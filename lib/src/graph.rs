@@ -48,7 +48,7 @@ impl ConnectionPoolManager {
     }
 }
 
-/// A neo4j database abstraction.
+/// A bolt database abstraction.
 /// This type can be cloned and shared across threads, internal resources
 /// are reference-counted.
 #[derive(Clone)]

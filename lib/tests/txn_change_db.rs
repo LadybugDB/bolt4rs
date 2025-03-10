@@ -6,7 +6,7 @@ mod container;
 
 #[tokio::test]
 async fn txn_changes_db() {
-    let neo4j = match container::Neo4jContainerBuilder::new()
+    let bolt = match container::BoltContainerBuilder::new()
         .modify_driver_config(|c| c.db("deebee"))
         .with_enterprise_edition()
         .start()
@@ -14,7 +14,7 @@ async fn txn_changes_db() {
     {
         Ok(n) => n,
         Err(e) => {
-            if e.to_string().contains("Neo4j Enterprise Edition") {
+            if e.to_string().contains("Bolt Enterprise Edition") {
                 eprintln!("Skipping test: {}", e);
                 return;
             }
@@ -22,7 +22,7 @@ async fn txn_changes_db() {
             std::panic::panic_any(e.to_string());
         }
     };
-    let graph = neo4j.graph();
+    let graph = bolt.graph();
 
     let mut txn = graph.start_txn_on("system").await.unwrap();
     txn.run_queries([
@@ -38,7 +38,7 @@ async fn txn_changes_db() {
         database: String,
     }
 
-    let status_field = if neo4j.version().major >= 5 {
+    let status_field = if bolt.version().major >= 5 {
         "currentQueryStatus"
     } else {
         "status"
@@ -49,7 +49,7 @@ async fn txn_changes_db() {
         .execute(query!(
             "SHOW TRANSACTIONS YIELD * WHERE username = {username} AND currentQuery
 STARTS WITH {query} AND toLower({status_field}) = {status} RETURN database",
-            username = "neo4j",
+            username = "bolt",
             query = "SHOW TRANSACTIONS YIELD ",
             status = "running",
         ))

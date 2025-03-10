@@ -431,7 +431,7 @@ impl<'de> Deserializer<'de> for BoltTypeDeserializer<'de> {
             BoltType::String(v) => visitor.visit_string(v.value.clone()),
             BoltType::Date(v) => {
                 let date = v.try_to_chrono().map_err(|_| {
-                    Error::custom("Could not convert Neo4j Date into chrono::NaiveDate")
+                    Error::custom("Could not convert Bolt Date into chrono::NaiveDate")
                 })?;
                 visitor.visit_string(date.to_string())
             }
@@ -445,7 +445,7 @@ impl<'de> Deserializer<'de> for BoltTypeDeserializer<'de> {
             }
             BoltType::DateTime(datetime) => {
                 let datetime = datetime.try_to_chrono().map_err(|_| {
-                    Error::custom("Could not convert Neo4j DateTime into chrono::DateTime")
+                    Error::custom("Could not convert Bolt DateTime into chrono::DateTime")
                 })?;
                 let value = match std::any::type_name::<V>() {
                     "chrono::naive::datetime::serde::NaiveDateTimeVisitor" => {
@@ -458,7 +458,7 @@ impl<'de> Deserializer<'de> for BoltTypeDeserializer<'de> {
             BoltType::LocalDateTime(ldt) => {
                 let ldt = ldt.try_to_chrono().map_err(|_| {
                     Error::custom(
-                        "Could not convert Neo4j LocalDateTime into chrono::NaiveDateTime",
+                        "Could not convert Bolt LocalDateTime into chrono::NaiveDateTime",
                     )
                 })?;
                 let ldt = format!("{:?}", ldt);
@@ -466,7 +466,7 @@ impl<'de> Deserializer<'de> for BoltTypeDeserializer<'de> {
             }
             BoltType::DateTimeZoneId(dtz) => {
                 let dtz = dtz.try_to_chrono().map_err(|_| {
-                    Error::custom("Could not convert Neo4j DateTimeZoneId into chrono::DateTime")
+                    Error::custom("Could not convert Bolt DateTimeZoneId into chrono::DateTime")
                 })?;
                 let value = match std::any::type_name::<V>() {
                     "chrono::naive::datetime::serde::NaiveDateTimeVisitor" => {

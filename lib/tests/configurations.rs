@@ -5,11 +5,11 @@ mod container;
 #[tokio::test]
 async fn configurations() {
     let config = ConfigBuilder::default()
-        .db("neo4j")
+        .db("bolt")
         .fetch_size(500)
         .max_connections(10);
-    let neo4j = container::Neo4jContainer::from_config(config).await;
-    let graph = neo4j.graph();
+    let bolt = container::BoltContainer::from_config(config).await;
+    let graph = bolt.graph();
 
     include!("../include/configurations.rs");
 }

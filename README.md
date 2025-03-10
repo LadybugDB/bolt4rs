@@ -7,16 +7,16 @@
 [docs-badge]: https://img.shields.io/badge/docs-latest-blue.svg?style=shield
 [docs-url]: https://docs.rs/neo4rs
 
-`neo4rs` is a driver for the [Neo4j](https://neo4j.com/) graph database, written in Rust.
+`neo4rs` is a driver for the [Bolt](https://bolt.com/) graph database, written in Rust.
 
-`neo4rs` implements the [bolt specification](https://neo4j.com/docs/bolt/current/bolt/message/#messages-summary-41)
+`neo4rs` implements the [bolt specification](https://bolt.com/docs/bolt/current/bolt/message/#messages-summary-41)
 
-This driver is compatible with Neo4j version 5.x and 4.4.
-Only the latest 5.x version is supported, following the [Neo4j Version support policy](https://neo4j.com/developer/kb/neo4j-supported-versions/).
+This driver is compatible with Bolt version 5.x and 4.4.
+Only the latest 5.x version is supported, following the [Bolt Version support policy](https://bolt.com/developer/kb/bolt-supported-versions/).
 
 ## API Documentation: [![Docs.rs][docs-badge]][docs-url]
 
-## [Getting Started](https://neo4j.com/docs/getting-started/languages-guides/community-drivers/#neo4j-rust)
+## [Getting Started](https://bolt.com/docs/getting-started/languages-guides/community-drivers/#bolt-rust)
 
 
 ## Example
@@ -24,7 +24,7 @@ Only the latest 5.x version is supported, following the [Neo4j Version support p
 ```rust
     // concurrent queries
     let uri = "127.0.0.1:7687";
-    let user = "neo4j";
+    let user = "bolt";
     let pass = "neo";
     let graph = Graph::new(&uri, user, pass).unwrap();
     for _ in 1..=42 {
@@ -77,44 +77,44 @@ This means, that certain features like bookmarks or element IDs are not supporte
 ### Testing
 
 This crate contains unit tests and integration tests.
-The unit tests are run with `cargo test --lib` and do not require a running Neo4j instance.
-The integration tests are run with `cargo test` and require a running Neo4j instance.
+The unit tests are run with `cargo test --lib` and do not require a running Bolt instance.
+The integration tests are run with `cargo test` and require a running Bolt instance.
 
 #### Running the integration tests
 
-To run the tests, you need to have either docker or an existing Neo4j instance running.
+To run the tests, you need to have either docker or an existing Bolt instance running.
 Docker is recommended since the tests don't necessarily clean up after themselves.
 
 ##### Using Docker
 
 To run the tests with docker, you need to have docker installed and running.
-You can control the version of Neo4j that is used by setting the `NEO4J_VERSION_TAG` environment variable.
+You can control the version of Bolt that is used by setting the `BOLT_VERSION_TAG` environment variable.
 The default version is `4.2`.
-The tests will use the official `neo4j` docker image, with the provided version as tag.
+The tests will use the official `bolt` docker image, with the provided version as tag.
 
 You might run into panics or test failures with the message 'failed to start container'.
-In that case, try to pull the image first before running the tests with `docker pull neo4j:$NEO4J_VERSION_TAG`.
+In that case, try to pull the image first before running the tests with `docker pull bolt:$BOLT_VERSION_TAG`.
 
 This could happen if you are on a machine with an architecture that is not supported by the image, e.g. `arm64` like the Apple silicon Macs.
 In that case, pulling the image will fail with a message like 'no matching manifest for linux/arm64/v8'.
-You need to use the `--platform` flag to pull the image for a different architecture, e.g. `docker pull --platform linux/amd64 neo4j:$NEO4J_VERSION_TAG`.
+You need to use the `--platform` flag to pull the image for a different architecture, e.g. `docker pull --platform linux/amd64 bolt:$BOLT_VERSION_TAG`.
 There is an experimental option in docker to use Rosetta to run those images, so that tests don't take forever to run (please check the docker documentation).
 
-You could also use a newer neo4j version like `4.4` instead, which has support for `arm64` architecture.
+You could also use a newer bolt version like `4.4` instead, which has support for `arm64` architecture.
 
-##### Using an existing Neo4j instance
+##### Using an existing Bolt instance
 
-To run the tests with an existing Neo4j instance, you need to have the `NEO4J_TEST_URI` environment variable set to the connection string, e.g. `neo4j+s://42421337thisisnotarealinstance.databases.neo4j.io`.
-The default user is `neo4j`, but it can be changed with the `NEO4J_TEST_USER` environment variable.
-The default password is `neo`, but it can be changed with the `NEO4J_TEST_PASS` environment variable.
+To run the tests with an existing Bolt instance, you need to have the `BOLT_TEST_URI` environment variable set to the connection string, e.g. `bolt+s://42421337thisisnotarealinstance.databases.bolt.io`.
+The default user is `bolt`, but it can be changed with the `BOLT_TEST_USER` environment variable.
+The default password is `neo`, but it can be changed with the `BOLT_TEST_PASS` environment variable.
 
-Some tests might run different queries depending on the Neo4j version.
-You can use the `NEO4J_VERSION_TAG` environment variable to set the version of the Neo4j instance.
+Some tests might run different queries depending on the Bolt version.
+You can use the `BOLT_VERSION_TAG` environment variable to set the version of the Bolt instance.
 
 It is recommended to only run a single integration test and manually clean up the database after the test.
 
 ```sh
-env NEO4J_TEST_URI=bolt://localhost:7687 NEO4J_TEST_USER=neo4j NEO4J_TEST_PASS=supersecret NEO4J_VERSION_TAG=5.8 cargo test --test <name of the integration test, see the file names in lib/tests/>
+env BOLT_TEST_URI=bolt://localhost:7687 BOLT_TEST_USER=bolt BOLT_TEST_PASS=supersecret BOLT_VERSION_TAG=5.8 cargo test --test <name of the integration test, see the file names in lib/tests/>
 ```
 
 ##### Using an Aura instance

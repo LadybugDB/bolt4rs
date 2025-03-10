@@ -76,7 +76,7 @@ mod tests {
 
         let cluster_routing_table = RoutingTable {
             ttl: 300,
-            db: Some("neo4j".into()),
+            db: Some("bolt".into()),
             servers: routers
                 .clone()
                 .into_iter()

@@ -105,19 +105,19 @@ impl ConfigBuilder {
         Self::default()
     }
 
-    /// The uri of the Neo4j server, e.g. "127.0.0.1:7687".
+    /// The uri of the Bolt server, e.g. "127.0.0.1:7687".
     pub fn uri(mut self, uri: impl Into<String>) -> Self {
         self.uri = Some(uri.into());
         self
     }
 
-    /// The username for authenticating with the Neo4j server.
+    /// The username for authenticating with the Bolt server.
     pub fn user(mut self, user: impl Into<String>) -> Self {
         self.user = Some(user.into());
         self
     }
 
-    /// The password for authenticating with the Neo4j server.
+    /// The password for authenticating with the Bolt server.
     pub fn password(mut self, password: impl Into<String>) -> Self {
         self.password = Some(password.into());
         self
@@ -160,7 +160,7 @@ impl ConfigBuilder {
     }
 
     /// Skip SSL validation. This is not recommended for production use.
-    /// This is true by default when connecting to the server using `neo4j+ssc` or 'bolt+ssc' schemes.
+    /// This is true by default when connecting to the server using `bolt+ssc` or 'bolt+ssc' schemes.
     pub fn skip_ssl_validation(mut self) -> Self {
         self.tls_config = ConnectionTLSConfig::NoSSLValidation;
         self

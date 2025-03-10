@@ -618,7 +618,7 @@ mod tests {
             .tiny_string("t_last")
             .tiny_int(42)
             .tiny_string("db")
-            .tiny_string("neo4j")
+            .tiny_string("bolt")
             .build();
 
         let expected = ResultSummary {
@@ -626,7 +626,7 @@ mod tests {
             t_first: None,
             t_last: Some(42),
             r#type: Some(Type::ReadWrite),
-            db: Some("neo4j".to_owned()),
+            db: Some("bolt".to_owned()),
             stats: Counters {
                 labels_added: 1,
                 nodes_created: 2,

@@ -9,7 +9,7 @@ mod container;
 async fn use_default_db() {
     let dbname = uuid::Uuid::new_v4().to_string().replace(['-', '_'], "");
 
-    let neo4j = match container::Neo4jContainerBuilder::new()
+    let bolt = match container::BoltContainerBuilder::new()
         .with_server_config("initial.dbms.default_database", dbname.as_str())
         .with_enterprise_edition()
         .start()
@@ -17,7 +17,7 @@ async fn use_default_db() {
     {
         Ok(n) => n,
         Err(e) => {
-            if e.to_string().contains("Neo4j Enterprise Edition") {
+            if e.to_string().contains("Bolt Enterprise Edition") {
                 eprintln!("Skipping test: {}", e);
                 return;
             }
@@ -25,7 +25,7 @@ async fn use_default_db() {
             std::panic::panic_any(e);
         }
     };
-    let graph = neo4j.graph();
+    let graph = bolt.graph();
 
     #[cfg(feature = "unstable-bolt-protocol-impl-v2")]
     let query_stream = graph
