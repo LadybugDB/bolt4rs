@@ -19,7 +19,7 @@ use crate::{
     BoltMap, BoltString, BoltType,
 };
 use bytes::{BufMut, Bytes, BytesMut};
-use log::{info, warn};
+use log::{warn};
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use rustls::crypto::CryptoProvider;
 use rustls::pki_types::{CertificateDer, UnixTime};
@@ -330,9 +330,6 @@ impl ConnectionInfo {
             "bolt" | "" => (false, false, false),
             "bolt+s" => (false, true, true),
             "bolt+ssc" => (false, true, false),
-            "bolt" => (true, false, false),
-            "bolt+s" => (true, true, true),
-            "bolt+ssc" => (true, true, false),
             otherwise => return Err(Error::UnsupportedScheme(otherwise.to_owned())),
         };
 
