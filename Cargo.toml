@@ -5,4 +5,5 @@ members = [
     "lib",
     "macros",
     "xtask",
+    "server",
 ]
