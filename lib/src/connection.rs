@@ -86,7 +86,7 @@ impl Connection {
         let mut response = [0, 0, 0, 0];
         stream.read_exact(&mut response).await?;
         let version = Version::parse(response)?;
-        info!("Connected to Neo4j with version {}", version);
+        debug!("Connected to Neo4j with version {}", version); // Changed to debug
         Ok(version)
     }
 
@@ -204,6 +204,7 @@ impl Connection {
         Self::dbg("send", &bytes);
         let end_marker: [u8; 2] = [0, 0];
         for c in bytes.chunks(MAX_CHUNK_SIZE) {
+            debug!("Sending chunk of size {}", c.len()); // Add debug logging
             self.stream.write_u16(c.len() as u16).await?;
             self.stream.write_all(c).await?;
         }
@@ -220,6 +221,7 @@ impl Connection {
         }
 
         while chunk_size > 0 {
+            debug!("Received chunk of size {}", chunk_size); // Add debug logging
             self.read_chunk(chunk_size, &mut bytes).await?;
             chunk_size = self.read_chunk_size().await?;
         }

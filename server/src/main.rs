@@ -1,6 +1,6 @@
 use anyhow::Result;
 use bytes::{BufMut, Bytes, BytesMut};
-use log::{error, info};
+use log::{debug, error, info};
 use std::collections::HashMap;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, BufStream},
@@ -14,11 +14,11 @@ async fn main() -> Result<()> {
     env_logger::init();
 
     let listener = TcpListener::bind("127.0.0.1:7687").await?;
-    info!("Bolt server listening on 127.0.0.1:7687");
+    debug!("Bolt server listening on 127.0.0.1:7687");
 
     loop {
         let (socket, addr) = listener.accept().await?;
-        info!("New connection from {}", addr);
+        debug!("New connection from {}", addr);
 
         tokio::spawn(async move {
             if let Err(e) = handle_connection(socket).await {
@@ -34,7 +34,7 @@ async fn handle_connection(socket: TcpStream) -> Result<()> {
     // Read first 4 bytes - these should be the magic bytes
     let mut magic = [0u8; 4];
     stream.read_exact(&mut magic).await?;
-    info!("Received magic bytes: {:02x?}", magic);
+    debug!("Received magic bytes: {:02x?}", magic);
 
     if (magic != [0x60, 0x60, 0xB0, 0x17]) {
         return Err(anyhow::anyhow!("Invalid magic bytes"));
@@ -43,26 +43,26 @@ async fn handle_connection(socket: TcpStream) -> Result<()> {
     // Read supported versions (16 bytes)
     let mut versions = [0u8; 16];
     stream.read_exact(&mut versions).await?;
-    info!("Received version bytes: {:02x?}", versions);
+    debug!("Received version bytes: {:02x?}", versions);
 
     // Send back version 4.4
     let version = [0x00, 0x00, 0x04, 0x04]; // Changed to match expected format
     stream.write_all(&version).await?;
     stream.flush().await?;
-    info!("Handshake completed successfully");
+    debug!("Handshake completed successfully");
 
     let mut session = BoltSession::new();
 
     loop {
         match read_chunked_message(&mut stream).await {
             Ok(Some(msg)) => {
-                info!("Received message bytes: {:02x?}", msg);
+                debug!("Received message bytes: {:02x?}", msg);
                 let response = session.handle_message(msg).await?;
-                info!("Sending response bytes: {:02x?}", response);
+                debug!("Sending response bytes: {:02x?}", response);
                 send_chunked_message(&mut stream, response).await?;
             }
             Ok(None) => {
-                info!("Received end of stream");
+                debug!("Received end of stream");
                 break;
             }
             Err(e) => {
@@ -84,7 +84,7 @@ async fn read_chunked_message(stream: &mut BufStream<TcpStream>) -> Result<Optio
         match stream.read_exact(&mut size_bytes).await {
             Ok(_) => {
                 let chunk_size = u16::from_be_bytes(size_bytes) as usize;
-                info!("Reading chunk of size {}", chunk_size);
+                debug!("Reading chunk of size {}", chunk_size);
 
                 // Zero chunk size signals end of message
                 if (chunk_size == 0) {
@@ -114,7 +114,7 @@ async fn read_chunked_message(stream: &mut BufStream<TcpStream>) -> Result<Optio
 async fn send_chunked_message(stream: &mut BufStream<TcpStream>, message: Bytes) -> Result<()> {
     for chunk in message.chunks(MAX_CHUNK_SIZE) {
         let chunk_len = chunk.len() as u16;
-        info!("Sending chunk of size {}", chunk_len);
+        debug!("Sending chunk of size {}", chunk_len);
         stream.write_all(&chunk_len.to_be_bytes()).await?;
         stream.write_all(chunk).await?;
     }
@@ -148,7 +148,7 @@ impl BoltSession {
         let marker = msg[0];
         let signature = msg[1];
 
-        info!(
+        debug!(
             "Handling message: marker={:02x}, signature={:02x}",
             marker, signature
         );
@@ -231,7 +231,7 @@ impl BoltSession {
             (0xB0, 0x02) => Ok(Bytes::new()),
 
             _ => {
-                info!("Unsupported message type: {:02x} {:02x}", marker, signature);
+                debug!("Unsupported message type: {:02x} {:02x}", marker, signature);
                 // Return empty success for unknown messages
                 let mut response = BytesMut::new();
                 response.put_u8(0xB1);

@@ -26,6 +26,7 @@ pub struct RoutedConnectionManager {
 
 impl RoutedConnectionManager {
     pub fn new(config: &Config, provider: Box<dyn RoutingTableProvider>) -> Result<Self, Error> {
+        debug!("Creating new RoutedConnectionManager"); // Changed to debug
         let backoff = Arc::new(
             ExponentialBackoffBuilder::new()
                 .with_initial_interval(Duration::from_millis(1))
@@ -70,7 +71,6 @@ impl RoutedConnectionManager {
                     }
                 }
             } else {
-                // We couldn't find a connection manager for the server, it was probably marked unavailable
                 error!(
                     "No connection manager available for router `{}` in the registry",
                     server.address
