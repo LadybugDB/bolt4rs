@@ -1,4 +1,4 @@
-use neo4rs::{query, Node};
+use bolt4rs::{query, Node};
 use serde::Deserialize;
 
 mod container;

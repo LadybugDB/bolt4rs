@@ -4,7 +4,7 @@ use crate::{
     BoltType,
 };
 use ::serde::Deserialize;
-use neo4rs_macros::BoltStruct;
+use bolt4rs_macros::BoltStruct;
 
 #[derive(Debug, PartialEq, Clone, BoltStruct)]
 #[signature(0xB1, 0x7F)]

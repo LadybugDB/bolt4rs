@@ -83,7 +83,7 @@ pub struct HelloBuilder {
 impl HelloBuilder {
     pub fn new(principal: impl Into<BoltString>, credentials: impl Into<BoltString>) -> Self {
         Self {
-            agent: "neo4rs".into(),
+            agent: "bolt4rs".into(),
             principal: principal.into(),
             credentials: credentials.into(),
             routing: None,

@@ -291,7 +291,7 @@ impl<T: Into<BoltType>> std::fmt::Debug for QueryParameter<'_, T> {
 /// # Examples
 ///
 /// ```
-/// use neo4rs::{query, Query};
+/// use bolt4rs::{query, Query};
 ///
 /// // This creates an unparametrized query.
 /// let q: Query = query!("MATCH (n) RETURN n");
@@ -312,7 +312,7 @@ impl<T: Into<BoltType>> std::fmt::Debug for QueryParameter<'_, T> {
 ///
 /// // The value can be any type that implements Into<BoltType>, it does not
 /// // need to implement Display or Debug.
-/// use neo4rs::{BoltInteger, BoltType};
+/// use bolt4rs::{BoltInteger, BoltType};
 ///
 /// struct Answer;
 /// impl Into<BoltType> for Answer {

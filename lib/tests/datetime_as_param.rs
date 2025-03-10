@@ -1,4 +1,4 @@
-use neo4rs::*;
+use bolt4rs::*;
 
 mod container;
 

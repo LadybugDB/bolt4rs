@@ -1,11 +1,11 @@
 [package]
-name = "neo4rs-macros"
+name = "bolt4rs-macros"
 version = "0.3.0"
 authors = ["Neo4j Labs <devrel@neo4j.com>", "John Pradeep Vincent <yehohanan7@gmail.com>"]
 edition = "2021"
-description = "Macros used by neo4rs"
+description = "Macros used by bolt4rs"
 license = "MIT"
-repository = "https://github.com/neo4j-labs/neo4rs"
+repository = "https://github.com/neo4j-labs/bolt4rs"
 rust-version = "1.63"
 
 [lib]

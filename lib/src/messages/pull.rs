@@ -1,7 +1,7 @@
 #![cfg_attr(feature = "unstable-bolt-protocol-impl-v2", allow(deprecated))]
 
 use crate::types::BoltMap;
-use neo4rs_macros::BoltStruct;
+use bolt4rs_macros::BoltStruct;
 
 #[derive(Debug, PartialEq, Clone, BoltStruct)]
 #[signature(0xB1, 0x3F)]

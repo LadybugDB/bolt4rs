@@ -3,7 +3,7 @@ use crate::{
     types::{BoltInteger, Result},
 };
 use chrono::{Days, NaiveDate, NaiveDateTime};
-use neo4rs_macros::BoltStruct;
+use bolt4rs_macros::BoltStruct;
 use std::convert::TryInto;
 
 #[derive(Debug, PartialEq, Eq, Clone, BoltStruct)]

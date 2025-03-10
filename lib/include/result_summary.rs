@@ -1,7 +1,7 @@
 {
     use ::futures::TryStreamExt as _;
 
-    use neo4rs::summary::{Type, Counters, ResultSummary};
+    use bolt4rs::summary::{Type, Counters, ResultSummary};
 
     #[allow(dead_code)]
     #[derive(Debug, PartialEq, serde::Deserialize)]

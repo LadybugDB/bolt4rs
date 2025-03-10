@@ -1,5 +1,5 @@
 use chrono::{DateTime, FixedOffset};
-use neo4rs::{Node, Point2D, Point3D};
+use bolt4rs::{Node, Point2D, Point3D};
 
 mod container;
 

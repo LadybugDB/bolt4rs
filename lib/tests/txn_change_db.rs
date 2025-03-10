@@ -1,5 +1,5 @@
 use futures::TryStreamExt;
-use neo4rs::query;
+use bolt4rs::query;
 use serde::Deserialize;
 
 mod container;

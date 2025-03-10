@@ -24,7 +24,7 @@
         assert_eq!(friend.labels.0, vec!["Person"]);
         assert_eq!(friend.keys.0, vec!["name"]);
 
-        // or use the neo4rs::Relation type
+        // or use the bolt4rs::Relation type
         let node: Node = row.get("friend").unwrap();
         assert_eq!(node.get::<String>("name").unwrap(), "Mr Mark");
         assert_eq!(node.labels(), vec!["Person"]);

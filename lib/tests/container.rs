@@ -1,5 +1,5 @@
 use lenient_semver::Version;
-use neo4rs::{ConfigBuilder, Graph};
+use bolt4rs::{ConfigBuilder, Graph};
 use testcontainers::{runners::AsyncRunner, ContainerAsync, ContainerRequest, ImageExt};
 use testcontainers_modules::bolt::{Bolt, BoltImage};
 

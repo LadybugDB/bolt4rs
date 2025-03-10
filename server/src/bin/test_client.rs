@@ -1,4 +1,4 @@
-use neo4rs::*;
+use bolt4rs::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

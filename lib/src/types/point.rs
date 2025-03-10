@@ -1,5 +1,5 @@
 use crate::types::{BoltFloat, BoltInteger};
-use neo4rs_macros::BoltStruct;
+use bolt4rs_macros::BoltStruct;
 
 #[derive(Debug, PartialEq, Clone, BoltStruct)]
 #[signature(0xB3, 0x58)]

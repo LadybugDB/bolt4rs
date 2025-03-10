@@ -1,5 +1,5 @@
 use futures::stream::{self, StreamExt, TryStreamExt};
-use neo4rs::{ConfigBuilder, Graph};
+use bolt4rs::{ConfigBuilder, Graph};
 
 #[tokio::main]
 async fn main() {

@@ -1,4 +1,4 @@
-use neo4rs_macros::BoltStruct;
+use bolt4rs_macros::BoltStruct;
 
 #[derive(Debug, PartialEq, Eq, Clone, BoltStruct)]
 #[signature(0xC0)]

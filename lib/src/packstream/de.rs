@@ -125,7 +125,7 @@ impl<'a: 'de, 'de> de::Deserializer<'de> for Deserializer<'a> {
     where
         V: Visitor<'de>,
     {
-        if name == "__neo4rs::RawBytes" {
+        if name == "__bolt4rs::RawBytes" {
             self.parse_next_item(Visitation::RawBytes, visitor)
         } else {
             self.parse_next_item(Visitation::default(), visitor)

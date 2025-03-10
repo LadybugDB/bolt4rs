@@ -13,7 +13,7 @@
 //! # Examples
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -36,7 +36,7 @@
 //! * `db` - the database to connect to (default is `bolt`)
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -61,7 +61,7 @@
 //! * [`Graph::run`] just returns [`errors::Result`]`<()>`, usually used for write only queries.
 //! * [`Graph::execute`] returns [`errors::Result`]`<`[`RowStream`]`>`
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -84,7 +84,7 @@
 //!
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -106,7 +106,7 @@
 //!
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -134,7 +134,7 @@
 //!
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -155,7 +155,7 @@
 To get access to the result summary after streaming a [`RowStream`], use the [`RowStream::finish`] method.
 
 ```no_run
-use neo4rs::*;
+use bolt4rs::*;
 
 #[tokio::main]
 async fn main() {
@@ -177,7 +177,7 @@ async fn main() {
 )]
 //! ### Rollback a transaction
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -202,7 +202,7 @@ async fn main() {
 //!
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -222,7 +222,7 @@ async fn main() {
 //! from the [`RowStream`]
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -239,7 +239,7 @@ async fn main() {
 //! Similar to bounded relation, an unbounded relation can also be created/parsed.
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -261,7 +261,7 @@ async fn main() {
 //!
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -284,7 +284,7 @@ async fn main() {
 //!
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -302,7 +302,7 @@ async fn main() {
 //!
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -322,7 +322,7 @@ async fn main() {
 //! [naive_date]: https://docs.rs/chrono/0.4.19/chrono/naive/struct.NaiveDate.html
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -351,7 +351,7 @@ async fn main() {
 //! Pass a time as a parameter to the query:
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -368,7 +368,7 @@ async fn main() {
 //! ### Parsing time from result
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -399,7 +399,7 @@ async fn main() {
 //! Pass a DateTime as parameter to the query:
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -415,7 +415,7 @@ async fn main() {
 //! ### Parsing DateTime from result
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -434,7 +434,7 @@ async fn main() {
 //! ## Path
 //!
 //! ```no_run
-//! use neo4rs::*;
+//! use bolt4rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() {

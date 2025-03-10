@@ -31,7 +31,7 @@
     assert_eq!(relation.keys.0, vec!["as"]);
     assert_eq!(relation.related_as, "friend");
 
-    // or use the neo4rs::Relation type
+    // or use the bolt4rs::Relation type
     let relation: Relation = row.get("r").unwrap();
     assert!(relation.id() > -1);
     assert!(relation.start_node_id() > -1);

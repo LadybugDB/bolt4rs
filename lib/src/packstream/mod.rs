@@ -101,7 +101,7 @@ impl<'de> Deserialize<'de> for RawBytes {
         }
 
         deserializer
-            .deserialize_newtype_struct("__neo4rs::RawBytes", RawBytesVisitor)
+            .deserialize_newtype_struct("__bolt4rs::RawBytes", RawBytesVisitor)
             .map(Self)
     }
 }

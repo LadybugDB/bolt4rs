@@ -1,5 +1,5 @@
 [package]
-name = "neo4rs-server"
+name = "bolt4rs-server"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,11 +8,11 @@ tokio = { version = "1.0", features = ["full"] }
 bytes = "1.0"
 log = "0.4"
 env_logger = "0.10"
-neo4rs = { path = "../lib" }
+bolt4rs = { path = "../lib" }
 anyhow = "1.0"
 
 [[bin]]
-name = "neo4rs-server"
+name = "bolt4rs-server"
 path = "src/main.rs"
 
 [[bin]]

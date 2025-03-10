@@ -1,23 +1,17 @@
-# Neo4rs [![CI Status][ci-badge]][ci-url]  [![Crates.io][crates-badge]][crates-url]
+# Bolt4rs [![CI Status][ci-badge]][ci-url]  [![Crates.io][crates-badge]][crates-url]
 
-[ci-badge]: https://github.com/neo4j-labs/neo4rs/actions/workflows/checks.yml/badge.svg
-[ci-url]: https://github.com/neo4j-labs/neo4rs
-[crates-badge]: https://img.shields.io/crates/v/neo4rs.svg?style=shield
-[crates-url]: https://crates.io/crates/neo4rs
+[ci-badge]: https://github.com/LadybugDB/bolt4rs/actions/workflows/checks.yml/badge.svg
+[ci-url]: https://github.com/LadybugDB/bolt4rs
+[crates-badge]: https://img.shields.io/crates/v/bolt4rs.svg?style=shield
+[crates-url]: https://crates.io/crates/bolt4rs
 [docs-badge]: https://img.shields.io/badge/docs-latest-blue.svg?style=shield
-[docs-url]: https://docs.rs/neo4rs
+[docs-url]: https://docs.rs/bolt4rs
 
-`neo4rs` is a driver for the [Bolt](https://bolt.com/) graph database, written in Rust.
+`bolt4rs` is a driver for the [Bolt](https://bolt.com/) graph database, written in Rust.
 
-`neo4rs` implements the [bolt specification](https://bolt.com/docs/bolt/current/bolt/message/#messages-summary-41)
-
-This driver is compatible with Bolt version 5.x and 4.4.
-Only the latest 5.x version is supported, following the [Bolt Version support policy](https://bolt.com/developer/kb/bolt-supported-versions/).
+`bolt4rs` implements the [bolt specification](https://neo4j.com/docs/bolt/current/bolt/message/#messages-summary-41)
 
 ## API Documentation: [![Docs.rs][docs-badge]][docs-url]
-
-## [Getting Started](https://bolt.com/docs/getting-started/languages-guides/community-drivers/#bolt-rust)
-
 
 ## Example
 
@@ -56,7 +50,7 @@ Only the latest 5.x version is supported, following the [Bolt Version support po
 ## MSRV
 
 The crate has a minimum supported Rust version (MSRV) of `1.75.0` as of 0.9.x.
-The version [0.8.x](https://crates.io/crates/neo4rs/0.8.0) has an MSRV of `1.63.0`
+The version [0.8.x](https://crates.io/crates/bolt4rs/0.8.0) has an MSRV of `1.63.0`
 
 A change in the MSRV in *not* considered a breaking change.
 For versions past 1.0.0, a change in the MSRV can be done in a minor version increment (1.1.3 -> 1.2.0)
@@ -173,7 +167,7 @@ Using `xtask` requires that `curl` and `jq` are available on the system.
 
 ## License
 
-Neo4rs is licensed under either of the following, at your option:
+Bolt4rs is licensed under either of the following, at your option:
 
  * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
  * MIT License ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)

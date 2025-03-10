@@ -25,7 +25,7 @@ impl<'a> HelloBuilder<'a> {
             scheme: "basic",
             principal,
             credentials,
-            user_agent: "neo4rs",
+            user_agent: "bolt4rs",
             routing: ServerRouting::No,
         }
     }
@@ -157,7 +157,7 @@ mod tests {
             .tiny_string("credentials")
             .tiny_string("pass")
             .tiny_string("user_agent")
-            .tiny_string("neo4rs")
+            .tiny_string("bolt4rs")
             .build();
 
         assert_eq!(bytes, expected);
@@ -180,7 +180,7 @@ mod tests {
             .tiny_string("credentials")
             .tiny_string("pass")
             .tiny_string("user_agent")
-            .tiny_string("neo4rs")
+            .tiny_string("bolt4rs")
             .tiny_string("routing")
             .tiny_map(0)
             .build();
@@ -205,7 +205,7 @@ mod tests {
             .tiny_string("credentials")
             .tiny_string("pass")
             .tiny_string("user_agent")
-            .tiny_string("neo4rs")
+            .tiny_string("bolt4rs")
             .tiny_string("routing")
             .tiny_map(2)
             .tiny_string("region")
@@ -234,7 +234,7 @@ mod tests {
             .tiny_string("credentials")
             .tiny_string("pass")
             .tiny_string("user_agent")
-            .tiny_string("neo4rs")
+            .tiny_string("bolt4rs")
             .build();
 
         assert_eq!(bytes, expected);
