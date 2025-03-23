@@ -154,8 +154,8 @@ impl BoltSession {
     }
 
     async fn handle_message(&mut self, db: &Arc<kuzu::Database>, msg: Bytes) -> Result<Bytes> {
-        let marker = msg[0];
-        let signature = msg[1];
+        let marker: u8 = msg[0];
+        let signature: u8 = msg[1];
 
         debug!(
             "Handling message: marker={:02x}, signature={:02x}",
@@ -207,11 +207,37 @@ impl BoltSession {
                 // Skip marker and signature which we've already read
                 let mut bytes = msg.slice(2..);
 
-                // Read query string - TINY_STRING format
+                // Read query string - handle different string formats
                 let str_marker = bytes[0];
-                let str_len = (str_marker & 0x0F) as usize;
-                let query = String::from_utf8(bytes.slice(1..1 + str_len).to_vec())?;
-                bytes = bytes.slice(1 + str_len..);
+                let (str_len, offset) = match str_marker {
+                    marker if (marker & 0xF0) == 0x80 => {
+                        // TINY_STRING
+                        ((marker & 0x0F), 1)
+                    }
+                    0xD0 => {
+                        // STRING8
+                        let len = bytes[1] as u8;
+                        (len, 2)
+                    }
+                    0xD1 => {
+                        // STRING16
+                        let len = u16::from_be_bytes([bytes[1], bytes[2]]) as u8;
+                        (len, 3)
+                    }
+                    0xD2 => {
+                        // STRING32
+                        let len =
+                            u32::from_be_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]) as u8;
+                        (len, 5)
+                    }
+                    _ => return Err(anyhow::anyhow!("Invalid string marker")),
+                };
+
+                let start: usize = offset as usize;
+                let str_size: usize = str_len as usize;
+
+                let query = String::from_utf8(bytes.slice(start..start + str_size).to_vec())?;
+                bytes = bytes.slice(start + str_size..);
 
                 // Read parameters map
                 let mut parameters = HashMap::new();
