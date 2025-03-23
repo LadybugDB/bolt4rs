@@ -66,7 +66,7 @@ async fn handle_connection(system_db: &Arc<kuzu::Database>, socket: TcpStream) -
         match read_chunked_message(&mut stream).await {
             Ok(Some(msg)) => {
                 debug!("Received message bytes: {:02x?}", msg);
-                let response = session.handle_message(msg).await?;
+                let response = session.handle_message(system_db, msg).await?;
                 debug!("Sending response bytes: {:02x?}", response);
                 send_chunked_message(&mut stream, response).await?;
             }
@@ -153,7 +153,7 @@ impl BoltSession {
         }
     }
 
-    async fn handle_message(&mut self, msg: Bytes) -> Result<Bytes> {
+    async fn handle_message(&mut self, db: &Arc<kuzu::Database>, msg: Bytes) -> Result<Bytes> {
         let marker = msg[0];
         let signature = msg[1];
 
@@ -204,7 +204,68 @@ impl BoltSession {
                     return Err(anyhow::anyhow!("Not authenticated"));
                 }
 
-                // Success response with fields
+                // Skip marker and signature which we've already read
+                let mut bytes = msg.slice(2..);
+
+                // Read query string - TINY_STRING format
+                let str_marker = bytes[0];
+                let str_len = (str_marker & 0x0F) as usize;
+                let query = String::from_utf8(bytes.slice(1..1 + str_len).to_vec())?;
+                bytes = bytes.slice(1 + str_len..);
+
+                // Read parameters map
+                let mut parameters = HashMap::new();
+                if bytes[0] & 0xF0 == 0xA0 {
+                    // TINY_MAP
+                    let map_size = bytes[0] & 0x0F;
+                    bytes = bytes.slice(1..);
+                    for _ in 0..map_size {
+                        // Read key
+                        let key_marker = bytes[0];
+                        let key_len = (key_marker & 0x0F) as usize;
+                        let key = String::from_utf8(bytes.slice(1..1 + key_len).to_vec())?;
+                        bytes = bytes.slice(1 + key_len..);
+
+                        // Read value
+                        let val_marker = bytes[0];
+                        let val_len = (val_marker & 0x0F) as usize;
+                        let value = String::from_utf8(bytes.slice(1..1 + val_len).to_vec())?;
+                        bytes = bytes.slice(1 + val_len..);
+
+                        parameters.insert(key, value);
+                    }
+                }
+
+                // Store the query
+                self.current_query = Some(Query {
+                    statement: query,
+                    parameters,
+                });
+
+                debug!("Stored query: {:?}", self.current_query);
+                let conn = Connection::new(&db)?;
+
+                // Get the current query and substitute parameters
+                let final_query = if let Some(Query {
+                    statement,
+                    parameters,
+                }) = &self.current_query
+                {
+                    let mut query_str = statement.clone();
+                    for (key, value) in parameters {
+                        // Replace $key or {key} style parameters
+                        query_str = query_str
+                            .replace(&format!("${}", key), value)
+                            .replace(&format!("{{{}}}", key), value);
+                    }
+                    query_str
+                } else {
+                    return Err(anyhow::anyhow!("No query stored"));
+                };
+
+                conn.query(&final_query);
+
+                // Rest of the success response remains the same
                 let mut response = BytesMut::new();
                 response.put_u8(0xB1); // tiny struct
                 response.put_u8(0x70); // SUCCESS
