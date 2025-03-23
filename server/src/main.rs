@@ -200,109 +200,94 @@ impl BoltSession {
 
             // RUN
             (0xB3, 0x10) => {
-                if (!self.authenticated) {
-                    return Err(anyhow::anyhow!("Not authenticated"));
+                match self.authenticated {
+                    false => Err(anyhow::anyhow!("Not authenticated")),
+                    true => {
+                        // Skip marker and signature which we've already read
+                        let mut bytes = msg.slice(2..);
+
+                        // Read query string - handle different string formats
+                        let str_marker = bytes[0];
+                        let (str_len, offset) = match str_marker {
+                            marker if (marker & 0xF0) == 0x80 => ((marker & 0x0F), 1),
+                            0xD0 => (bytes[1] as u8, 2),
+                            0xD1 => (u16::from_be_bytes([bytes[1], bytes[2]]) as u8, 3),
+                            0xD2 => (u32::from_be_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]) as u8, 5),
+                            _ => return Err(anyhow::anyhow!("Invalid string marker")),
+                        };
+
+                        let start: usize = offset as usize;
+                        let str_size: usize = str_len as usize;
+
+                        let query = String::from_utf8(bytes.slice(start..start + str_size).to_vec())?;
+                        bytes = bytes.slice(start + str_size..);
+
+                        // Read parameters map
+                        let mut parameters = HashMap::new();
+                        match bytes[0] & 0xF0 {
+                            0xA0 => {
+                                // TINY_MAP
+                                let map_size = bytes[0] & 0x0F;
+                                bytes = bytes.slice(1..);
+                                for _ in 0..map_size {
+                                    // Read key
+                                    let key_marker = bytes[0];
+                                    let key_len = (key_marker & 0x0F) as usize;
+                                    let key = String::from_utf8(bytes.slice(1..1 + key_len).to_vec())?;
+                                    bytes = bytes.slice(1 + key_len..);
+
+                                    // Read value
+                                    let val_marker = bytes[0];
+                                    let val_len = (val_marker & 0x0F) as usize;
+                                    let value = String::from_utf8(bytes.slice(1..1 + val_len).to_vec())?;
+                                    bytes = bytes.slice(1 + val_len..);
+
+                                    parameters.insert(key, value);
+                                }
+                            }
+                            _ => {}
+                        }
+
+                        // Store the query
+                        self.current_query = Some(Query {
+                            statement: query,
+                            parameters,
+                        });
+
+                        debug!("Stored query: {:?}", self.current_query);
+                        let conn = Connection::new(&db)?;
+
+                        // Get the current query and substitute parameters
+                        let final_query = match &self.current_query {
+                            Some(Query { statement, parameters }) => {
+                                let mut query_str = statement.clone();
+                                for (key, value) in parameters {
+                                    // Replace $key or {key} style parameters
+                                    query_str = query_str
+                                        .replace(&format!("${}", key), value)
+                                        .replace(&format!("{{{}}}", key), value);
+                                }
+                                query_str
+                            }
+                            None => return Err(anyhow::anyhow!("No query stored")),
+                        };
+
+                        conn.query(&final_query);
+
+                        // Rest of the success response
+                        let mut response = BytesMut::new();
+                        response.put_u8(0xB1); // tiny struct
+                        response.put_u8(0x70); // SUCCESS
+                        response.put_u8(0xA1); // tiny map, size 1
+                        response.put_u8(0x86); // tiny string length
+                        response.put_slice(b"fields");
+                        response.put_u8(0x91); // tiny list, size 1
+                        response.put_u8(0x81); // tiny string length
+                        response.put_slice(b"1");
+
+                        Ok(response.freeze())
+                    }
                 }
-
-                // Skip marker and signature which we've already read
-                let mut bytes = msg.slice(2..);
-
-                // Read query string - handle different string formats
-                let str_marker = bytes[0];
-                let (str_len, offset) = match str_marker {
-                    marker if (marker & 0xF0) == 0x80 => {
-                        // TINY_STRING
-                        ((marker & 0x0F), 1)
-                    }
-                    0xD0 => {
-                        // STRING8
-                        let len = bytes[1] as u8;
-                        (len, 2)
-                    }
-                    0xD1 => {
-                        // STRING16
-                        let len = u16::from_be_bytes([bytes[1], bytes[2]]) as u8;
-                        (len, 3)
-                    }
-                    0xD2 => {
-                        // STRING32
-                        let len =
-                            u32::from_be_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]) as u8;
-                        (len, 5)
-                    }
-                    _ => return Err(anyhow::anyhow!("Invalid string marker")),
-                };
-
-                let start: usize = offset as usize;
-                let str_size: usize = str_len as usize;
-
-                let query = String::from_utf8(bytes.slice(start..start + str_size).to_vec())?;
-                bytes = bytes.slice(start + str_size..);
-
-                // Read parameters map
-                let mut parameters = HashMap::new();
-                if bytes[0] & 0xF0 == 0xA0 {
-                    // TINY_MAP
-                    let map_size = bytes[0] & 0x0F;
-                    bytes = bytes.slice(1..);
-                    for _ in 0..map_size {
-                        // Read key
-                        let key_marker = bytes[0];
-                        let key_len = (key_marker & 0x0F) as usize;
-                        let key = String::from_utf8(bytes.slice(1..1 + key_len).to_vec())?;
-                        bytes = bytes.slice(1 + key_len..);
-
-                        // Read value
-                        let val_marker = bytes[0];
-                        let val_len = (val_marker & 0x0F) as usize;
-                        let value = String::from_utf8(bytes.slice(1..1 + val_len).to_vec())?;
-                        bytes = bytes.slice(1 + val_len..);
-
-                        parameters.insert(key, value);
-                    }
-                }
-
-                // Store the query
-                self.current_query = Some(Query {
-                    statement: query,
-                    parameters,
-                });
-
-                debug!("Stored query: {:?}", self.current_query);
-                let conn = Connection::new(&db)?;
-
-                // Get the current query and substitute parameters
-                let final_query = if let Some(Query {
-                    statement,
-                    parameters,
-                }) = &self.current_query
-                {
-                    let mut query_str = statement.clone();
-                    for (key, value) in parameters {
-                        // Replace $key or {key} style parameters
-                        query_str = query_str
-                            .replace(&format!("${}", key), value)
-                            .replace(&format!("{{{}}}", key), value);
-                    }
-                    query_str
-                } else {
-                    return Err(anyhow::anyhow!("No query stored"));
-                };
-
-                conn.query(&final_query);
-
-                // Rest of the success response remains the same
-                let mut response = BytesMut::new();
-                response.put_u8(0xB1); // tiny struct
-                response.put_u8(0x70); // SUCCESS
-                response.put_u8(0xA1); // tiny map, size 1
-                response.put_u8(0x86); // tiny string length
-                response.put_slice(b"fields");
-                response.put_u8(0x91); // tiny list, size 1
-                response.put_u8(0x81); // tiny string length
-                response.put_slice(b"1");
-
-                Ok(response.freeze())
             }
 
             // PULL_ALL or PULL
