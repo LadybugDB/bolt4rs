@@ -1,7 +1,7 @@
 use anyhow::Result;
 use bytes::{BufMut, Bytes, BytesMut};
-use kuzu::{Connection, Database, Error, SystemConfig};
-use log::{debug, error, info};
+use kuzu::{Connection, Database, SystemConfig};
+use log::{debug, error};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::{
@@ -45,7 +45,7 @@ async fn handle_connection(system_db: &Arc<kuzu::Database>, socket: TcpStream) -
     stream.read_exact(&mut magic).await?;
     debug!("Received magic bytes: {:02x?}", magic);
 
-    if (magic != [0x60, 0x60, 0xB0, 0x17]) {
+    if magic != [0x60, 0x60, 0xB0, 0x17] {
         return Err(anyhow::anyhow!("Invalid magic bytes"));
     }
 
@@ -96,8 +96,8 @@ async fn read_chunked_message(stream: &mut BufStream<TcpStream>) -> Result<Optio
                 debug!("Reading chunk of size {}", chunk_size);
 
                 // Zero chunk size signals end of message
-                if (chunk_size == 0) {
-                    return Ok(if (message.is_empty()) {
+                if chunk_size == 0 {
+                    return Ok(if message.is_empty() {
                         None
                     } else {
                         Some(message.freeze())
@@ -110,7 +110,7 @@ async fn read_chunked_message(stream: &mut BufStream<TcpStream>) -> Result<Optio
                 message.extend_from_slice(&chunk);
             }
             Err(e) => {
-                if (message.is_empty()) {
+                if message.is_empty() {
                     return Ok(None);
                 } else {
                     return Err(e.into());
@@ -140,7 +140,8 @@ struct Query {
 
 struct BoltSession {
     authenticated: bool,
-    transactions: HashMap<i64, ()>,
+    // TODO: handle transactions later
+    // transactions: HashMap<i64, ()>,
     current_query: Option<Query>,
 }
 
@@ -148,7 +149,7 @@ impl BoltSession {
     fn new() -> Self {
         Self {
             authenticated: false,
-            transactions: HashMap::new(),
+            // transactions: HashMap::new(),
             current_query: None,
         }
     }
@@ -210,42 +211,44 @@ impl BoltSession {
                         let str_marker = bytes[0];
                         let (str_len, offset) = match str_marker {
                             marker if (marker & 0xF0) == 0x80 => ((marker & 0x0F), 1),
-                            0xD0 => (bytes[1] as u8, 2),
+                            0xD0 => (bytes[1], 2),
                             0xD1 => (u16::from_be_bytes([bytes[1], bytes[2]]) as u8, 3),
-                            0xD2 => (u32::from_be_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]) as u8, 5),
+                            0xD2 => (
+                                u32::from_be_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]) as u8,
+                                5,
+                            ),
                             _ => return Err(anyhow::anyhow!("Invalid string marker")),
                         };
 
                         let start: usize = offset as usize;
                         let str_size: usize = str_len as usize;
 
-                        let query = String::from_utf8(bytes.slice(start..start + str_size).to_vec())?;
+                        let query =
+                            String::from_utf8(bytes.slice(start..start + str_size).to_vec())?;
                         bytes = bytes.slice(start + str_size..);
 
                         // Read parameters map
                         let mut parameters = HashMap::new();
-                        match bytes[0] & 0xF0 {
-                            0xA0 => {
-                                // TINY_MAP
-                                let map_size = bytes[0] & 0x0F;
-                                bytes = bytes.slice(1..);
-                                for _ in 0..map_size {
-                                    // Read key
-                                    let key_marker = bytes[0];
-                                    let key_len = (key_marker & 0x0F) as usize;
-                                    let key = String::from_utf8(bytes.slice(1..1 + key_len).to_vec())?;
-                                    bytes = bytes.slice(1 + key_len..);
+                        if bytes[0] & 0xF0 == 0xA0 {
+                            // TINY_MAP
+                            let map_size = bytes[0] & 0x0F;
+                            bytes = bytes.slice(1..);
+                            for _ in 0..map_size {
+                                // Read key
+                                let key_marker = bytes[0];
+                                let key_len = (key_marker & 0x0F) as usize;
+                                let key = String::from_utf8(bytes.slice(1..1 + key_len).to_vec())?;
+                                bytes = bytes.slice(1 + key_len..);
 
-                                    // Read value
-                                    let val_marker = bytes[0];
-                                    let val_len = (val_marker & 0x0F) as usize;
-                                    let value = String::from_utf8(bytes.slice(1..1 + val_len).to_vec())?;
-                                    bytes = bytes.slice(1 + val_len..);
+                                // Read value
+                                let val_marker = bytes[0];
+                                let val_len = (val_marker & 0x0F) as usize;
+                                let value =
+                                    String::from_utf8(bytes.slice(1..1 + val_len).to_vec())?;
+                                bytes = bytes.slice(1 + val_len..);
 
-                                    parameters.insert(key, value);
-                                }
+                                parameters.insert(key, value);
                             }
-                            _ => {}
                         }
 
                         // Store the query
@@ -255,11 +258,14 @@ impl BoltSession {
                         });
 
                         debug!("Stored query: {:?}", self.current_query);
-                        let conn = Connection::new(&db)?;
+                        let conn = Connection::new(db)?;
 
                         // Get the current query and substitute parameters
                         let final_query = match &self.current_query {
-                            Some(Query { statement, parameters }) => {
+                            Some(Query {
+                                statement,
+                                parameters,
+                            }) => {
                                 let mut query_str = statement.clone();
                                 for (key, value) in parameters {
                                     // Replace $key or {key} style parameters
@@ -272,7 +278,16 @@ impl BoltSession {
                             None => return Err(anyhow::anyhow!("No query stored")),
                         };
 
-                        conn.query(&final_query);
+                        match conn.query(&final_query) {
+                            Err(e) => {
+                                error!("Query error: {}", e);
+                                return Err(anyhow::anyhow!("Query error"));
+                            }
+                            Ok(_) => {
+                                // Query executed successfully
+                                debug!("Query executed successfully");
+                            }
+                        }
 
                         // Rest of the success response
                         let mut response = BytesMut::new();

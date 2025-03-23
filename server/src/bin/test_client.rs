@@ -11,24 +11,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Successfully connected!");
 
     println!("Creating Person table...");
-    let _ = graph
+    graph
         .run("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")
         .await?;
 
     println!("Inserting sample data...");
-    let _ = graph
+    graph
         .run("CREATE (:Person {name: 'Alice', age: 25});")
         .await?;
-    let _ = graph
+    graph
         .run("CREATE (:Person {name: 'Bob', age: 30});")
         .await?;
 
     println!("Querying data...");
-    let result = graph
+    graph
         .run("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;")
         .await?;
     println!("Query results:");
-    println!("{:?}", result);
+    println!("{:?}", ());
 
     Ok(())
 }
