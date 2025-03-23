@@ -2,7 +2,7 @@
 name = "bolt4rs"
 version = "0.9.0-rc.6"
 authors = [
-    "Bolt Labs <devrel@bolt.com>",
+    "Neo4j Labs <devrel@neo4j.com>",
     "John Pradeep Vincent <yehohanan7@gmail.com>",
 ]
 edition = "2021"

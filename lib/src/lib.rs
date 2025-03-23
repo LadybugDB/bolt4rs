@@ -1,9 +1,9 @@
-//! Bolt driver compatible with bolt 4.x versions
+//! Bolt driver compatible with neo4j 4.x versions
 //!
 //! * An implementation of the [bolt protocol][bolt] to interact with Bolt server
 //! * async/await apis using [tokio][tokio]
 //! * Supports bolt 4.2 specification
-//! * tested with Bolt versions: 4.0, 4.1, 4.2
+//! * tested with Neo4j versions: 4.0, 4.1, 4.2
 //!
 //!
 //! [bolt]: https://7687.org/
