@@ -8,7 +8,7 @@ sleep 1
 
 # Start the server in background
 echo "Starting bolt4rs-server..."
-RUST_LOG=info cargo run --bin bolt4rs-server &
+RUST_LOG=debug cargo run --bin bolt4rs-server &
 SERVER_PID=$!
 
 # Wait for server to start

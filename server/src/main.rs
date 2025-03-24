@@ -1,6 +1,7 @@
 use anyhow::Result;
+use arrow_array::{Array, BooleanArray, Float64Array, Int64Array, StringArray};
 use bytes::{BufMut, Bytes, BytesMut};
-use kuzu::{Connection, Database, SystemConfig};
+use kuzu::{Connection, Database, QueryResult, SystemConfig};
 use log::{debug, error};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -140,17 +141,20 @@ struct Query {
 
 struct BoltSession {
     authenticated: bool,
-    // TODO: handle transactions later
-    // transactions: HashMap<i64, ()>,
     current_query: Option<Query>,
+    result: Option<QueryResult>,
+    result_consumed: bool,
+    has_more: bool,
 }
 
 impl BoltSession {
     fn new() -> Self {
         Self {
             authenticated: false,
-            // transactions: HashMap::new(),
             current_query: None,
+            result: None,
+            result_consumed: false,
+            has_more: false,
         }
     }
 
@@ -283,9 +287,20 @@ impl BoltSession {
                                 error!("Query error: {}", e);
                                 return Err(anyhow::anyhow!("Query error"));
                             }
-                            Ok(_) => {
+                            Ok(result) => {
                                 // Query executed successfully
                                 debug!("Query executed successfully");
+                                // For DDL operations like CREATE TABLE, mark as consumed immediately
+                                let is_ddl =
+                                    final_query.trim().to_uppercase().starts_with("CREATE ");
+                                self.result = Some(result);
+                                if is_ddl {
+                                    self.result_consumed = true;
+                                    self.has_more = false;
+                                } else {
+                                    self.result_consumed = false;
+                                    self.has_more = true;
+                                }
                             }
                         }
 
@@ -305,20 +320,159 @@ impl BoltSession {
                 }
             }
 
-            // PULL_ALL or PULL
-            (0xB0, 0x3F) | (0xB1, 0x3F) => {
+            // PULL_ALL or PULL or PULL_N
+            (0xB0, 0x3F) | (0xB1, 0x3F) | (0xB1, 0x2F) => {
+                if self.result.is_none() {
+                    return Err(anyhow::anyhow!("No results available"));
+                }
+
                 let mut response = BytesMut::new();
 
-                // Send RECORD with value 1
-                response.put_u8(0xB1); // tiny struct
-                response.put_u8(0x71); // RECORD
-                response.put_u8(0x91); // tiny list, size 1
-                response.put_u8(0x01); // integer 1
+                // For PULL_N, we need to read the n parameter
+                let mut max_records = usize::MAX;
+                if marker == 0xB1 && signature == 0x2F {
+                    // Skip the marker and signature bytes
+                    let mut bytes = msg.slice(2..);
 
-                // Follow with SUCCESS
+                    // Read the map size
+                    if bytes[0] & 0xF0 == 0xA0 {
+                        // TINY_MAP
+                        let map_size = bytes[0] & 0x0F;
+                        bytes = bytes.slice(1..);
+
+                        // Read map entries
+                        for _ in 0..map_size {
+                            // Read key
+                            let key_marker = bytes[0];
+                            let key_len = (key_marker & 0x0F) as usize;
+                            let key = String::from_utf8(bytes.slice(1..1 + key_len).to_vec())?;
+                            bytes = bytes.slice(1 + key_len..);
+
+                            // Read value
+                            if key == "n" {
+                                if bytes[0] == 0xC9 {
+                                    // INT64
+                                    let n_bytes: [u8; 8] = bytes.slice(1..9).as_ref().try_into()?;
+                                    let n = i64::from_be_bytes(n_bytes);
+                                    max_records = n as usize;
+                                    bytes = bytes.slice(9..);
+                                } else if bytes[0] >= 0xF0 {
+                                    // TINY_INT negative
+                                    max_records = (bytes[0] - 0xF0) as usize;
+                                    bytes = bytes.slice(1..);
+                                } else if bytes[0] <= 0x7F {
+                                    // TINY_INT positive
+                                    max_records = bytes[0] as usize;
+                                    bytes = bytes.slice(1..);
+                                }
+                            } else {
+                                // Skip any other values
+                                bytes = bytes.slice(1..);
+                            }
+                        }
+                    }
+                }
+
+                debug!("results_consumed: {}", self.result_consumed);
+                if !self.result_consumed {
+                    if let Some(result) = &mut self.result {
+                        let chunk_size = std::cmp::min(1000, max_records);
+                        let mut records_sent = 0;
+                        match result.iter_arrow(chunk_size) {
+                            Ok(arrow_iter) => {
+                                for batch in arrow_iter {
+                                    let num_columns = batch.num_columns();
+                                    let num_rows = batch.num_rows();
+
+                                    debug!("sending {} rows", num_rows);
+                                    for row_idx in 0..num_rows {
+                                        if records_sent >= max_records {
+                                            break;
+                                        }
+
+                                        response.put_u8(0xB1); // tiny struct
+                                        response.put_u8(0x71); // RECORD
+                                        response.put_u8(0x90 + num_columns as u8); // tiny list with size
+
+                                        for col_idx in 0..num_columns {
+                                            let column = batch.column(col_idx);
+                                            if column.is_null(row_idx) {
+                                                response.put_u8(0xC0); // NULL
+                                                continue;
+                                            }
+                                            debug!("column_type: {:?}", column.data_type());
+
+                                            // Handle different array types
+                                            if let Some(array) =
+                                                column.as_any().downcast_ref::<StringArray>()
+                                            {
+                                                let value = array.value(row_idx);
+                                                let len = value.len();
+                                                if (len as u8) < 16 {
+                                                    response.put_u8(0x80 + len as u8);
+                                                } else if len < 256 {
+                                                    response.put_u8(0xD0);
+                                                    response.put_u8(len as u8);
+                                                } else {
+                                                    response.put_u8(0xD1);
+                                                    response.put_u16(len as u16);
+                                                }
+                                                response.put_slice(value.as_bytes());
+                                            } else if let Some(array) =
+                                                column.as_any().downcast_ref::<Int64Array>()
+                                            {
+                                                let value = array.value(row_idx);
+                                                if (-16..=127).contains(&value) {
+                                                    response.put_u8((value as i8) as u8);
+                                                } else {
+                                                    response.put_u8(0xC9); // INT64
+                                                    response.put_i64(value);
+                                                }
+                                            } else if let Some(array) =
+                                                column.as_any().downcast_ref::<Float64Array>()
+                                            {
+                                                let value = array.value(row_idx);
+                                                response.put_u8(0xC1); // FLOAT
+                                                response.put_f64(value);
+                                            } else if let Some(array) =
+                                                column.as_any().downcast_ref::<BooleanArray>()
+                                            {
+                                                let value = array.value(row_idx);
+                                                response.put_u8(if value { 0xC3 } else { 0xC2 });
+                                            }
+                                        }
+                                        records_sent += 1;
+                                    }
+                                    if records_sent >= max_records {
+                                        break;
+                                    }
+                                }
+
+                                let exhausted_iter = records_sent < chunk_size;
+
+                                // Only mark as consumed if we've reached max_records or sent all available records
+                                self.result_consumed =
+                                    records_sent >= max_records || exhausted_iter;
+                                self.has_more = !self.result_consumed;
+                            }
+                            Err(e) => {
+                                error!("Error creating arrow iterator: {}", e);
+                                return Err(anyhow::anyhow!("Error creating arrow iterator"));
+                            }
+                        }
+                    }
+                }
+
+                // Add SUCCESS message
                 response.put_u8(0xB1); // tiny struct
                 response.put_u8(0x70); // SUCCESS
-                response.put_u8(0xA0); // empty map
+                response.put_u8(0xA2); // tiny map, size 2
+                response.put_u8(0x84); // tiny string, size 4
+                response.put_slice(b"done");
+                response.put_u8(self.result_consumed as u8); // true/false
+                response.put_u8(0x88); // tiny string, size 8
+                response.put_slice(b"has_more");
+                response.put_u8(self.has_more as u8); // true/false
 
                 Ok(response.freeze())
             }

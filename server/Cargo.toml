@@ -10,7 +10,10 @@ log = "0.4"
 env_logger = "0.10"
 bolt4rs = { path = "../lib" }
 anyhow = "1.0"
-kuzu = "^0.8.2"
+kuzu = { version = "^0.8.2", features = ["arrow"] }
+arrow-array = { version = "53.0.0", default-features = false }
+arrow = { version = "53.0.0", default-features = false }
+arrow-schema = { version = "53.0.0", default-features = false }
 
 [[bin]]
 name = "bolt4rs-server"
