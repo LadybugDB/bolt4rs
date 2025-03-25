@@ -7,6 +7,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let user = "bolt";
     let pass = "test";
 
+    env_logger::init();
     println!("Connecting to Bolt server at {}", uri);
     let graph = Graph::new(uri, user, pass)?;
     println!("Successfully connected!");

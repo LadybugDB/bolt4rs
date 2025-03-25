@@ -67,9 +67,11 @@ async fn handle_connection(system_db: &Arc<kuzu::Database>, socket: TcpStream) -
         match read_chunked_message(&mut stream).await {
             Ok(Some(msg)) => {
                 debug!("Received message bytes: {:02x?}", msg);
-                let response = session.handle_message(system_db, msg).await?;
-                debug!("Sending response bytes: {:02x?}", response);
-                send_chunked_message(&mut stream, response).await?;
+                let responses = session.handle_message(system_db, msg).await?;
+                for response in responses {
+                    debug!("Sending response bytes: {:02x?}", response);
+                    send_chunked_message(&mut stream, response).await?;
+                }
             }
             Ok(None) => {
                 debug!("Received end of stream");
@@ -147,6 +149,7 @@ struct BoltSession {
     has_more: bool,
 }
 
+// Return type changed to Vec<Bytes> to support multiple responses
 impl BoltSession {
     fn new() -> Self {
         Self {
@@ -158,7 +161,7 @@ impl BoltSession {
         }
     }
 
-    async fn handle_message(&mut self, db: &Arc<kuzu::Database>, msg: Bytes) -> Result<Bytes> {
+    async fn handle_message(&mut self, db: &Arc<kuzu::Database>, msg: Bytes) -> Result<Vec<Bytes>> {
         let marker: u8 = msg[0];
         let signature: u8 = msg[1];
 
@@ -190,7 +193,7 @@ impl BoltSession {
                 response.put_u8(0x85); // tiny string, size 5
                 response.put_slice(b"bolt1");
 
-                Ok(response.freeze())
+                Ok(vec![response.freeze()])
             }
 
             // INIT
@@ -200,7 +203,7 @@ impl BoltSession {
                 response.put_u8(0xB1); // tiny struct
                 response.put_u8(0x70); // SUCCESS
                 response.put_u8(0xA0); // empty map
-                Ok(response.freeze())
+                Ok(vec![response.freeze()])
             }
 
             // RUN
@@ -315,7 +318,7 @@ impl BoltSession {
                         response.put_u8(0x81); // tiny string length
                         response.put_slice(b"1");
 
-                        Ok(response.freeze())
+                        Ok(vec![response.freeze()])
                     }
                 }
             }
@@ -326,10 +329,11 @@ impl BoltSession {
                     return Err(anyhow::anyhow!("No results available"));
                 }
 
-                let mut response = BytesMut::new();
-
                 // For PULL_N, we need to read the n parameter
-                let mut max_records = usize::MAX;
+                let mut max_records = 1000; // Default to 1000 records for PULL/PULL_ALL
+                let chunk_size = 100;  // Process in smaller chunks
+
+                // Parse PULL_N parameters if needed
                 if marker == 0xB1 && signature == 0x2F {
                     // Skip the marker and signature bytes
                     let mut bytes = msg.slice(2..);
@@ -373,112 +377,117 @@ impl BoltSession {
                     }
                 }
 
-                debug!("results_consumed: {}", self.result_consumed);
+                let mut responses = Vec::new();
+                let mut records_sent = 0;
+
                 if !self.result_consumed {
-                    if let Some(result) = &mut self.result {
-                        let chunk_size = std::cmp::min(1000, max_records);
-                        let mut records_sent = 0;
-                        match result.iter_arrow(chunk_size) {
-                            Ok(arrow_iter) => {
-                                for batch in arrow_iter {
-                                    let num_columns = batch.num_columns();
-                                    let num_rows = batch.num_rows();
+                    // Get a mutable reference to the result
+                    let result = self.result.as_mut().unwrap();
+                    match result.iter_arrow(chunk_size) {
+                        Ok(arrow_iter) => {
+                            // Process batches
+                            for batch in arrow_iter {
+                                let num_columns = batch.num_columns();
+                                let num_rows = batch.num_rows();
 
-                                    debug!("sending {} rows", num_rows);
-                                    for row_idx in 0..num_rows {
-                                        if records_sent >= max_records {
-                                            break;
-                                        }
-
-                                        response.put_u8(0xB1); // tiny struct
-                                        response.put_u8(0x71); // RECORD
-                                        response.put_u8(0x90 + num_columns as u8); // tiny list with size
-
-                                        for col_idx in 0..num_columns {
-                                            let column = batch.column(col_idx);
-                                            if column.is_null(row_idx) {
-                                                response.put_u8(0xC0); // NULL
-                                                continue;
-                                            }
-                                            debug!("column_type: {:?}", column.data_type());
-
-                                            // Handle different array types
-                                            if let Some(array) =
-                                                column.as_any().downcast_ref::<StringArray>()
-                                            {
-                                                let value = array.value(row_idx);
-                                                let len = value.len();
-                                                if (len as u8) < 16 {
-                                                    response.put_u8(0x80 + len as u8);
-                                                } else if len < 256 {
-                                                    response.put_u8(0xD0);
-                                                    response.put_u8(len as u8);
-                                                } else {
-                                                    response.put_u8(0xD1);
-                                                    response.put_u16(len as u16);
-                                                }
-                                                response.put_slice(value.as_bytes());
-                                            } else if let Some(array) =
-                                                column.as_any().downcast_ref::<Int64Array>()
-                                            {
-                                                let value = array.value(row_idx);
-                                                if (-16..=127).contains(&value) {
-                                                    response.put_u8((value as i8) as u8);
-                                                } else {
-                                                    response.put_u8(0xC9); // INT64
-                                                    response.put_i64(value);
-                                                }
-                                            } else if let Some(array) =
-                                                column.as_any().downcast_ref::<Float64Array>()
-                                            {
-                                                let value = array.value(row_idx);
-                                                response.put_u8(0xC1); // FLOAT
-                                                response.put_f64(value);
-                                            } else if let Some(array) =
-                                                column.as_any().downcast_ref::<BooleanArray>()
-                                            {
-                                                let value = array.value(row_idx);
-                                                response.put_u8(if value { 0xC3 } else { 0xC2 });
-                                            }
-                                        }
-                                        records_sent += 1;
-                                    }
+                                debug!("sending {} rows", num_rows);
+                                for row_idx in 0..num_rows {
                                     if records_sent >= max_records {
                                         break;
                                     }
+
+                                    let mut record_response = BytesMut::new();
+                                    record_response.put_u8(0xB1); // tiny struct
+                                    record_response.put_u8(0x71); // RECORD
+                                    record_response.put_u8(0x90 + num_columns as u8); // tiny list with size
+
+                                    for col_idx in 0..num_columns {
+                                        let column = batch.column(col_idx);
+                                        if column.is_null(row_idx) {
+                                            record_response.put_u8(0xC0); // NULL
+                                            continue;
+                                        }
+                                        // Handle different array types
+                                        if let Some(array) = column.as_any().downcast_ref::<StringArray>() {
+                                            let value = array.value(row_idx);
+                                            let len = value.len();
+                                            if (len as u8) < 16 {
+                                                record_response.put_u8(0x80 + len as u8);
+                                            } else if len < 256 {
+                                                record_response.put_u8(0xD0);
+                                                record_response.put_u8(len as u8);
+                                            } else {
+                                                record_response.put_u8(0xD1);
+                                                record_response.put_u16(len as u16);
+                                            }
+                                            record_response.put_slice(value.as_bytes());
+                                        } else if let Some(array) = column.as_any().downcast_ref::<Int64Array>() {
+                                            let value = array.value(row_idx);
+                                            if (-16..=127).contains(&value) {
+                                                record_response.put_u8((value as i8) as u8);
+                                            } else {
+                                                record_response.put_u8(0xC9); // INT64
+                                                record_response.put_i64(value);
+                                            }
+                                        } else if let Some(array) = column.as_any().downcast_ref::<Float64Array>() {
+                                            let value = array.value(row_idx);
+                                            record_response.put_u8(0xC1); // FLOAT
+                                            record_response.put_f64(value);
+                                        } else if let Some(array) = column.as_any().downcast_ref::<BooleanArray>() {
+                                            let value = array.value(row_idx);
+                                            record_response.put_u8(if value { 0xC3 } else { 0xC2 });
+                                        }
+                                    }
+                                    records_sent += 1;
+                                    responses.push(record_response.freeze());
                                 }
-
-                                let exhausted_iter = records_sent < chunk_size;
-
-                                // Only mark as consumed if we've reached max_records or sent all available records
-                                self.result_consumed =
-                                    records_sent >= max_records || exhausted_iter;
-                                self.has_more = !self.result_consumed;
+                                if records_sent >= max_records {
+                                    break;
+                                }
                             }
-                            Err(e) => {
-                                error!("Error creating arrow iterator: {}", e);
-                                return Err(anyhow::anyhow!("Error creating arrow iterator"));
-                            }
+
+                            let exhausted_iter = records_sent < chunk_size;
+                            self.result_consumed = records_sent >= max_records || exhausted_iter;
+                            self.has_more = !self.result_consumed;
+
+                            // Send final success message
+                            let mut success_response = BytesMut::new();
+                            success_response.put_u8(0xB1); // tiny struct
+                            success_response.put_u8(0x70); // SUCCESS
+                            success_response.put_u8(0xA2); // tiny map, size 2
+                            success_response.put_u8(0x84); // tiny string, size 4
+                            success_response.put_slice(b"done");
+                            success_response.put_u8(self.result_consumed as u8);
+                            success_response.put_u8(0x88); // tiny string, size 8
+                            success_response.put_slice(b"has_more");
+                            success_response.put_u8(self.has_more as u8);
+
+                            responses.push(success_response.freeze());
+                            Ok(responses)
+                        }
+                        Err(e) => {
+                            error!("Error creating arrow iterator: {}", e);
+                            Err(anyhow::anyhow!("Error creating arrow iterator"))
                         }
                     }
+                } else {
+                    // Result is already consumed, send an empty success
+                    let mut success_response = BytesMut::new();
+                    success_response.put_u8(0xB1); // tiny struct
+                    success_response.put_u8(0x70); // SUCCESS
+                    success_response.put_u8(0xA2); // tiny map, size 2
+                    success_response.put_u8(0x84); // tiny string, size 4
+                    success_response.put_slice(b"done");
+                    success_response.put_u8(true as u8);
+                    success_response.put_u8(0x88); // tiny string, size 8
+                    success_response.put_slice(b"has_more");
+                    success_response.put_u8(false as u8);
+                    Ok(vec![success_response.freeze()])
                 }
-
-                // Add SUCCESS message
-                response.put_u8(0xB1); // tiny struct
-                response.put_u8(0x70); // SUCCESS
-                response.put_u8(0xA2); // tiny map, size 2
-                response.put_u8(0x84); // tiny string, size 4
-                response.put_slice(b"done");
-                response.put_u8(self.result_consumed as u8); // true/false
-                response.put_u8(0x88); // tiny string, size 8
-                response.put_slice(b"has_more");
-                response.put_u8(self.has_more as u8); // true/false
-
-                Ok(response.freeze())
             }
 
             // GOODBYE
-            (0xB0, 0x02) => Ok(Bytes::new()),
+            (0xB0, 0x02) => Ok(vec![Bytes::new()]),
 
             _ => {
                 debug!("Unsupported message type: {:02x} {:02x}", marker, signature);
@@ -487,7 +496,7 @@ impl BoltSession {
                 response.put_u8(0xB1);
                 response.put_u8(0x70);
                 response.put_u8(0xA0);
-                Ok(response.freeze())
+                Ok(vec![response.freeze()])
             }
         }
     }

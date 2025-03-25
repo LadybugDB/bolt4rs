@@ -1,14 +1,18 @@
 #!/bin/bash
 set -e
 
+rm -rf system
+
 # Kill any existing bolt4rs-server process
 echo "Cleaning up any existing bolt4rs-server process..."
 pkill -f bolt4rs-server || true
 sleep 1
 
+export RUST_LOG=info
+
 # Start the server in background
 echo "Starting bolt4rs-server..."
-RUST_LOG=debug cargo run --bin bolt4rs-server &
+cargo run --bin bolt4rs-server &
 SERVER_PID=$!
 
 # Wait for server to start
