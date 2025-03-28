@@ -1,7 +1,7 @@
 use bolt4rs::{ConfigBuilder, Graph};
 use lenient_semver::Version;
 use testcontainers::{runners::AsyncRunner, ContainerAsync, ContainerRequest, ImageExt};
-use testcontainers_modules::bolt::{Bolt, BoltImage};
+use testcontainers_modules::neo4j::{Neo4j, Neo4jImage};
 
 use std::{error::Error, io::BufRead as _};
 
@@ -55,7 +55,7 @@ impl BoltContainerBuilder {
 pub struct BoltContainer {
     graph: Graph,
     version: String,
-    _container: Option<ContainerAsync<BoltImage>>,
+    _container: Option<ContainerAsync<Neo4jImage>>,
 }
 
 impl BoltContainer {
@@ -144,7 +144,7 @@ impl BoltContainer {
         connection: &TestConnection,
         enterprise: bool,
         env_vars: I,
-    ) -> Result<(String, ContainerAsync<BoltImage>), Box<dyn Error + Send + Sync + 'static>>
+    ) -> Result<(String, ContainerAsync<Neo4jImage>), Box<dyn Error + Send + Sync + 'static>>
     where
         I: Iterator<Item = (String, String)>,
     {
@@ -160,11 +160,11 @@ impl BoltContainer {
         connection: &TestConnection,
         enterprise: bool,
         env_vars: I,
-    ) -> Result<ContainerRequest<BoltImage>, Box<dyn Error + Send + Sync + 'static>>
+    ) -> Result<ContainerRequest<Neo4jImage>, Box<dyn Error + Send + Sync + 'static>>
     where
         I: Iterator<Item = (String, String)>,
     {
-        let image = Bolt::new()
+        let image = Neo4j::new()
             .with_user(connection.auth.user.to_owned())
             .with_password(connection.auth.pass.to_owned());
 
