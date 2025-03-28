@@ -10,9 +10,9 @@ use serde::{
 
 mod detail;
 mod request;
-mod response;
+pub mod response;
 mod structs;
-mod summary;
+pub mod summary;
 
 pub use request::{
     Commit, Discard, Goodbye, Hello, HelloBuilder, Pull, Reset, Rollback, WrapExtra,
@@ -27,7 +27,7 @@ pub use summary::{Failure, Success, Summary};
 
 use crate::packstream::{self, de, from_bytes, from_bytes_ref, ser, to_bytes, Data};
 
-pub(crate) trait Message: Serialize {
+pub trait Message: Serialize {
     /// Serialize this type into a packstream encoded byte slice.
     fn to_bytes(&self) -> Result<Bytes, ser::Error>;
 }

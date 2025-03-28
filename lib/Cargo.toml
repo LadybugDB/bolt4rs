@@ -16,6 +16,7 @@ categories = ["database", "network-programming", "asynchronous"]
 rust-version = "1.75.0"
 
 [features]
+default = ["unstable-bolt-protocol-impl-v2"]
 json = ["serde_json"]
 unstable-v1 = ["unstable-bolt-protocol-impl-v2", "unstable-result-summary"]
 unstable-serde-packstream-format = []

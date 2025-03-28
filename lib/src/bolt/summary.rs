@@ -1,4 +1,3 @@
-use crate::version::Version;
 use serde::{
     de::{self, VariantAccess as _, Visitor},
     ser, Deserialize, Serialize,
@@ -22,12 +21,19 @@ impl<R: std::fmt::Debug> Summary<R> {
             )),
         }
     }
+
+    pub fn to_bytes(&self) -> Result<Vec<u8>, crate::errors::Error>
+    where
+        R: Serialize,
+    {
+        Ok(crate::packstream::to_bytes(self)?.to_vec())
+    }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Success<R> {
-    pub(crate) metadata: R,
+    pub metadata: R,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -106,19 +112,26 @@ impl<'de, R: Deserialize<'de>> Deserialize<'de> for Summary<R> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bolt::Message;
     use crate::packstream::bolt;
     use crate::{bolt::MessageResponse as _, BoltMap, BoltString, BoltType};
 
     #[test]
     fn parse_hello_success() {
         let data = bolt().structure(1, 0x70).null().build();
-
+        let data_copy = data.clone(); // Keep a copy of the original data for comparison
         let success = Summary::<()>::parse(data).unwrap();
 
         match success {
             Summary::Success(Success { metadata: () }) => {}
             _ => panic!("Expected success"),
         }
+        let _ = success.to_bytes().unwrap();
+        // Ensure the serialized bytes match the original data
+        assert_eq!(
+            data_copy, bytes,
+            "Serialized bytes do not match original data"
+        );
     }
 
     #[test]

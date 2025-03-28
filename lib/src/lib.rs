@@ -469,7 +469,7 @@ mod stream;
 pub mod summary;
 mod txn;
 mod types;
-mod version;
+pub mod version;
 
 pub use crate::auth::ClientCertificate;
 pub use crate::config::{Config, ConfigBuilder, Database};

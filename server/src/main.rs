@@ -9,6 +9,11 @@ use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, BufStream},
     net::{TcpListener, TcpStream},
 };
+// Import with explicit feature flag
+use bolt4rs::{
+    bolt::response::success,
+    bolt::summary::{Success, Summary},
+};
 
 const MAX_CHUNK_SIZE: usize = 65_535;
 
@@ -174,26 +179,17 @@ impl BoltSession {
             // HELLO
             (0xB1, 0x01) => {
                 self.authenticated = true;
-                let mut response = BytesMut::new();
-                response.put_u8(0xB1); // tiny struct, size 1
-                response.put_u8(0x70); // SUCCESS
 
-                // Add metadata map with fixed size strings
-                response.put_u8(0xA2); // tiny map, size 2
+                // Create success metadata with server info and connection id
+                let metadata = success::MetaBuilder::new()
+                    .server("kuzu/0.8.2")
+                    .connection_id("bolt-31") // Example connection ID
+                    .build();
 
-                // Server field
-                response.put_u8(0x86); // tiny string, size 6
-                response.put_slice(b"server");
-                response.put_u8(0x84); // tiny string, size 4
-                response.put_slice(b"Bolt");
+                // Create Success with metadata and wrap it in Summary
+                let summary = Summary::Success(Success { metadata });
 
-                // Connection id
-                response.put_u8(0x8D); // tiny string, size 13
-                response.put_slice(b"connection_id");
-                response.put_u8(0x85); // tiny string, size 5
-                response.put_slice(b"bolt1");
-
-                Ok(vec![response.freeze()])
+                Ok(vec![Bytes::from(summary.to_bytes()?)])
             }
 
             // INIT
@@ -458,20 +454,15 @@ impl BoltSession {
                             self.result_consumed = records_sent >= max_records || exhausted_iter;
                             self.has_more = !self.result_consumed;
 
-                            // Send final success message
-                            let mut success_response = BytesMut::new();
-                            success_response.put_u8(0xB1); // tiny struct
-                            success_response.put_u8(0x70); // SUCCESS
-                            success_response.put_u8(0xA2); // tiny map, size 2
-                            success_response.put_u8(0x84); // tiny string, size 4
-                            success_response.put_slice(b"done");
-                            success_response.put_u8(self.result_consumed as u8);
-                            success_response.put_u8(0x88); // tiny string, size 8
-                            success_response.put_slice(b"has_more");
-                            success_response.put_u8(self.has_more as u8);
-
-                            responses.push(success_response.freeze());
-                            Ok(responses)
+                            let metadata = success::MetaBuilder::new()
+                                .server("kuzu/0.8.2") // Example server version
+                                .connection_id("bolt-31") // Example connection ID
+                                .done(self.result_consumed) // Set done based on consumption
+                                .has_more(!self.result_consumed && !exhausted_iter) // Set has_more based on consumption
+                                .build();
+                            // Create Success with metadata and wrap it in Summary
+                            let summary = Summary::Success(Success { metadata });
+                            Ok(vec![Bytes::from(summary.to_bytes()?)])
                         }
                         Err(e) => {
                             error!("Error creating arrow iterator: {}", e);
@@ -479,18 +470,13 @@ impl BoltSession {
                         }
                     }
                 } else {
-                    // Result is already consumed, send an empty success
-                    let mut success_response = BytesMut::new();
-                    success_response.put_u8(0xB1); // tiny struct
-                    success_response.put_u8(0x70); // SUCCESS
-                    success_response.put_u8(0xA2); // tiny map, size 2
-                    success_response.put_u8(0x84); // tiny string, size 4
-                    success_response.put_slice(b"done");
-                    success_response.put_u8(true as u8);
-                    success_response.put_u8(0x88); // tiny string, size 8
-                    success_response.put_slice(b"has_more");
-                    success_response.put_u8(false as u8);
-                    Ok(vec![success_response.freeze()])
+                    let metadata = success::MetaBuilder::new()
+                        .server("kuzu/0.8.2") // Example server version
+                        .connection_id("bolt-31") // Example connection ID
+                        .build();
+                    // Create Success with metadata and wrap it in Summary
+                    let summary = Summary::Success(Success { metadata });
+                    Ok(vec![Bytes::from(summary.to_bytes()?)])
                 }
             }
 
