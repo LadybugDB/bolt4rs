@@ -34,7 +34,7 @@ mod tests {
 
         let success: Success = Success::parse(Version::V4_1, &mut data).unwrap();
 
-        assert_eq!(success.get::<String>("server").unwrap(), "Bolt/4.1.4");
+        assert_eq!(success.get::<String>("server").unwrap(), "Neo4j/4.1.4");
         assert_eq!(success.get::<String>("connection_id").unwrap(), "bolt-31");
     }
 }
