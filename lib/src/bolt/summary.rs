@@ -1,9 +1,10 @@
-use std::{fmt, marker::PhantomData};
-
+use crate::version::Version;
+use crate::BoltMap;
 use serde::{
     de::{self, VariantAccess as _, Visitor},
-    Deserialize,
+    ser, Deserialize, Serialize,
 };
+use std::{fmt, marker::PhantomData};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Summary<R> {
@@ -40,6 +41,29 @@ impl Failure {
     pub fn into_error(self) -> crate::errors::Error {
         let Self { code, message } = self;
         crate::errors::Error::Bolt(crate::errors::BoltError::new(code, message))
+    }
+}
+
+// Implement serialization for Summary<R>
+impl<R: Serialize> Serialize for Summary<R> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: ser::Serializer,
+    {
+        match self {
+            Summary::Success(success) => {
+                serializer.serialize_newtype_variant("Summary", 0x70, "SUCCESS", &success.metadata)
+            }
+            Summary::Ignored => {
+                serializer.serialize_newtype_variant("Summary", 0x7E, "IGNORED", &())
+            }
+            Summary::Failure(failure) => {
+                let mut data = BoltMap::new();
+                data.put("code".into(), failure.code.clone().into()); // Use the code from the failure
+                data.put("message".into(), failure.message.clone().into()); // Use the message from the failure
+                serializer.serialize_newtype_variant("Summary", 0x7F, "FAILURE", &data)
+            }
+        }
     }
 }
 
