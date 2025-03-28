@@ -331,7 +331,7 @@ impl BoltSession {
 
                 // For PULL_N, we need to read the n parameter
                 let mut max_records = 1000; // Default to 1000 records for PULL/PULL_ALL
-                let chunk_size = 100;  // Process in smaller chunks
+                let chunk_size = 100; // Process in smaller chunks
 
                 // Parse PULL_N parameters if needed
                 if marker == 0xB1 && signature == 0x2F {
@@ -408,7 +408,9 @@ impl BoltSession {
                                             continue;
                                         }
                                         // Handle different array types
-                                        if let Some(array) = column.as_any().downcast_ref::<StringArray>() {
+                                        if let Some(array) =
+                                            column.as_any().downcast_ref::<StringArray>()
+                                        {
                                             let value = array.value(row_idx);
                                             let len = value.len();
                                             if (len as u8) < 16 {
@@ -421,7 +423,9 @@ impl BoltSession {
                                                 record_response.put_u16(len as u16);
                                             }
                                             record_response.put_slice(value.as_bytes());
-                                        } else if let Some(array) = column.as_any().downcast_ref::<Int64Array>() {
+                                        } else if let Some(array) =
+                                            column.as_any().downcast_ref::<Int64Array>()
+                                        {
                                             let value = array.value(row_idx);
                                             if (-16..=127).contains(&value) {
                                                 record_response.put_u8((value as i8) as u8);
@@ -429,11 +433,15 @@ impl BoltSession {
                                                 record_response.put_u8(0xC9); // INT64
                                                 record_response.put_i64(value);
                                             }
-                                        } else if let Some(array) = column.as_any().downcast_ref::<Float64Array>() {
+                                        } else if let Some(array) =
+                                            column.as_any().downcast_ref::<Float64Array>()
+                                        {
                                             let value = array.value(row_idx);
                                             record_response.put_u8(0xC1); // FLOAT
                                             record_response.put_f64(value);
-                                        } else if let Some(array) = column.as_any().downcast_ref::<BooleanArray>() {
+                                        } else if let Some(array) =
+                                            column.as_any().downcast_ref::<BooleanArray>()
+                                        {
                                             let value = array.value(row_idx);
                                             record_response.put_u8(if value { 0xC3 } else { 0xC2 });
                                         }
