@@ -5,10 +5,22 @@ use serde::Serialize;
 /// particularly the one sent after a HELLO message.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Meta {
+    #[serde(default)]
     pub(crate) server: String,
+    #[serde(default)]
     pub(crate) connection_id: String,
+    #[serde(default = "default_true")]
     pub(crate) done: bool,
+    #[serde(default = "default_false")]
     pub(crate) has_more: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_false() -> bool {
+    false
 }
 
 /// Builder for creating Meta instances with default values.

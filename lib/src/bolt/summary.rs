@@ -115,23 +115,17 @@ mod tests {
     use crate::bolt::Message;
     use crate::packstream::bolt;
     use crate::{bolt::MessageResponse as _, BoltMap, BoltString, BoltType};
+    use bytes::Bytes;
 
     #[test]
     fn parse_hello_success() {
         let data = bolt().structure(1, 0x70).null().build();
-        let data_copy = data.clone(); // Keep a copy of the original data for comparison
         let success = Summary::<()>::parse(data).unwrap();
 
         match success {
             Summary::Success(Success { metadata: () }) => {}
             _ => panic!("Expected success"),
         }
-        let _ = success.to_bytes().unwrap();
-        // Ensure the serialized bytes match the original data
-        assert_eq!(
-            data_copy, bytes,
-            "Serialized bytes do not match original data"
-        );
     }
 
     #[test]
@@ -154,16 +148,24 @@ mod tests {
             .string8("The client is unauthorized due to authentication failure.")
             .build();
 
+        let data_copy = data.clone(); // Keep a copy of the original data for comparison
         let failure = Summary::<()>::parse(data).unwrap();
+        let bytes = failure.clone().to_bytes().unwrap();
 
-        let failure = match failure {
+        let failure2 = match failure {
             Summary::Failure(failure) => failure,
             _ => panic!("Expected failure"),
         };
-
-        assert_eq!(failure.code, "Neo.ClientError.Security.Unauthorized");
+        // Ensure the serialized bytes match the original data
         assert_eq!(
-            failure.message,
+            data_copy,
+            Bytes::from(bytes),
+            "Serialized bytes do not match original data"
+        );
+
+        assert_eq!(failure2.code, "Neo.ClientError.Security.Unauthorized");
+        assert_eq!(
+            failure2.message,
             "The client is unauthorized due to authentication failure."
         );
     }
