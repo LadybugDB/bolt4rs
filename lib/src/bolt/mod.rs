@@ -10,6 +10,7 @@ use serde::{
 
 mod detail;
 mod request;
+mod response;
 mod structs;
 mod summary;
 

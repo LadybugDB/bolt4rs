@@ -1,5 +1,4 @@
 use crate::version::Version;
-use crate::BoltMap;
 use serde::{
     de::{self, VariantAccess as _, Visitor},
     ser, Deserialize, Serialize,
@@ -31,7 +30,7 @@ pub struct Success<R> {
     pub(crate) metadata: R,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Failure {
     pub(crate) code: String,
     pub(crate) message: String,
@@ -58,10 +57,7 @@ impl<R: Serialize> Serialize for Summary<R> {
                 serializer.serialize_newtype_variant("Summary", 0x7E, "IGNORED", &())
             }
             Summary::Failure(failure) => {
-                let mut data = BoltMap::new();
-                data.put("code".into(), failure.code.clone().into()); // Use the code from the failure
-                data.put("message".into(), failure.message.clone().into()); // Use the message from the failure
-                serializer.serialize_newtype_variant("Summary", 0x7F, "FAILURE", &data)
+                serializer.serialize_newtype_variant("Summary", 0x7F, "FAILURE", &failure)
             }
         }
     }
