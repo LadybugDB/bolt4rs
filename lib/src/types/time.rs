@@ -1,6 +1,6 @@
 use crate::types::BoltInteger;
-use chrono::{FixedOffset, NaiveTime, Offset, Timelike};
 use bolt4rs_macros::BoltStruct;
+use chrono::{FixedOffset, NaiveTime, Offset, Timelike};
 
 #[derive(Debug, PartialEq, Eq, Clone, BoltStruct)]
 #[signature(0xB2, 0x54)]

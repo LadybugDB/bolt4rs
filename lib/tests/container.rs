@@ -1,5 +1,5 @@
-use lenient_semver::Version;
 use bolt4rs::{ConfigBuilder, Graph};
+use lenient_semver::Version;
 use testcontainers::{runners::AsyncRunner, ContainerAsync, ContainerRequest, ImageExt};
 use testcontainers_modules::bolt::{Bolt, BoltImage};
 
@@ -48,8 +48,7 @@ impl BoltContainerBuilder {
     }
 
     pub async fn start(self) -> Result<BoltContainer, Box<dyn Error + Send + Sync + 'static>> {
-        BoltContainer::from_config_and_edition_and_env(self.config, self.enterprise, self.env)
-            .await
+        BoltContainer::from_config_and_edition_and_env(self.config, self.enterprise, self.env).await
     }
 }
 

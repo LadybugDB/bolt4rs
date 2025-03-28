@@ -2,8 +2,8 @@ use crate::{
     errors::Error,
     types::{BoltInteger, Result},
 };
-use chrono::{Days, NaiveDate, NaiveDateTime};
 use bolt4rs_macros::BoltStruct;
+use chrono::{Days, NaiveDate, NaiveDateTime};
 use std::convert::TryInto;
 
 #[derive(Debug, PartialEq, Eq, Clone, BoltStruct)]

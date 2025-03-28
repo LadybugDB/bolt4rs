@@ -1,13 +1,11 @@
 use crate::auth::ConnectionTLSConfig;
-use log::debug;
+#[cfg(feature = "unstable-bolt-protocol-impl-v2")]
+use crate::bolt::{
+    ExpectedResponse, Hello, HelloBuilder, Message, MessageResponse, Reset, Summary,
+};
 #[cfg(not(feature = "unstable-bolt-protocol-impl-v2"))]
 use crate::messages::HelloBuilder;
-#[cfg(feature = "unstable-bolt-protocol-impl-v2")]
-use {
-    crate::bolt::{
-        ExpectedResponse, Hello, HelloBuilder, Message, MessageResponse, Reset, Summary,
-    },
-};
+use log::debug;
 
 #[cfg(feature = "unstable-bolt-protocol-impl-v2")]
 use crate::routing::{Route, RoutingTable};
@@ -19,7 +17,7 @@ use crate::{
     BoltMap, BoltString, BoltType,
 };
 use bytes::{BufMut, Bytes, BytesMut};
-use log::{warn};
+use log::warn;
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use rustls::crypto::CryptoProvider;
 use rustls::pki_types::{CertificateDer, UnixTime};

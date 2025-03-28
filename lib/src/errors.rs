@@ -180,9 +180,9 @@ impl BoltErrorKind {
                 (Some("Transaction"), Some("Terminated")) => {
                     Self::Client(BoltClientErrorKind::TransactionTerminated)
                 }
-                (Some("Security"), Some(_)) => Self::Client(BoltClientErrorKind::Security(
-                    BoltSecurityErrorKind::Other,
-                )),
+                (Some("Security"), Some(_)) => {
+                    Self::Client(BoltClientErrorKind::Security(BoltSecurityErrorKind::Other))
+                }
                 (Some("Security"), _) => Self::Client(BoltClientErrorKind::Security(
                     BoltSecurityErrorKind::Unknown,
                 )),

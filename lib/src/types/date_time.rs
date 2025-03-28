@@ -1,7 +1,7 @@
 use crate::errors::Error;
 use crate::types::*;
-use chrono::{DateTime, FixedOffset, NaiveDateTime, Offset, Timelike};
 use bolt4rs_macros::BoltStruct;
+use chrono::{DateTime, FixedOffset, NaiveDateTime, Offset, Timelike};
 use std::convert::TryInto;
 
 #[derive(Debug, PartialEq, Eq, Clone, BoltStruct)]

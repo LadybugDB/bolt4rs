@@ -457,9 +457,7 @@ impl<'de> Deserializer<'de> for BoltTypeDeserializer<'de> {
             }
             BoltType::LocalDateTime(ldt) => {
                 let ldt = ldt.try_to_chrono().map_err(|_| {
-                    Error::custom(
-                        "Could not convert Bolt LocalDateTime into chrono::NaiveDateTime",
-                    )
+                    Error::custom("Could not convert Bolt LocalDateTime into chrono::NaiveDateTime")
                 })?;
                 let ldt = format!("{:?}", ldt);
                 visitor.visit_string(ldt)

@@ -474,7 +474,7 @@ mod version;
 pub use crate::auth::ClientCertificate;
 pub use crate::config::{Config, ConfigBuilder, Database};
 pub use crate::errors::{
-    Error, BoltClientErrorKind, BoltError, BoltErrorKind, BoltSecurityErrorKind, Result,
+    BoltClientErrorKind, BoltError, BoltErrorKind, BoltSecurityErrorKind, Error, Result,
 };
 pub use crate::graph::{query, Graph};
 pub use crate::query::{Query, QueryParameter, RunResult};
