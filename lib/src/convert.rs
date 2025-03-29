@@ -313,6 +313,14 @@ impl<A: Into<BoltType> + Clone> From<&[A]> for BoltType {
     }
 }
 
+impl<T: Into<BoltType>> FromIterator<T> for BoltType {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        BoltType::List(BoltList {
+            value: iter.into_iter().map(Into::into).collect(),
+        })
+    }
+}
+
 impl<K, V> From<HashMap<K, V>> for BoltType
 where
     K: Into<BoltString>,
@@ -614,6 +622,21 @@ mod tests {
                     ),
                     ("value".into(), 1337.into()),
                 ]),
+            })
+        );
+    }
+
+    #[test]
+    fn convert_from_iterator() {
+        let value: Vec<i64> = vec![42, 1337];
+        let value: BoltType = value.into_iter().collect();
+        assert_eq!(
+            value,
+            BoltType::List(BoltList {
+                value: vec![
+                    BoltType::Integer(BoltInteger::new(42)),
+                    BoltType::Integer(BoltInteger::new(1337)),
+                ],
             })
         );
     }
