@@ -23,7 +23,12 @@ impl<'de> NodeRef<'de> {
     /// - `labels`: A vector of label strings for the node
     /// - `properties`: The node's properties stored as serialized data
     /// - `element_id`: An optional unique element identifier
-    pub fn new(id: u64, labels: Vec<&'de str>, properties: Bytes, element_id: Option<&'de str>) -> Self {
+    pub fn new(
+        id: u64,
+        labels: Vec<&'de str>,
+        properties: Bytes,
+        element_id: Option<&'de str>,
+    ) -> Self {
         Self {
             id,
             labels,

@@ -1,6 +1,6 @@
 use anyhow::Result;
 use arrow_array::{Array, BooleanArray, Float64Array, Int64Array, StringArray};
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::{Bytes, BytesMut};
 use kuzu::{Connection, Database, QueryResult, SystemConfig};
 use log::{debug, error};
 use std::collections::HashMap;
@@ -11,10 +11,13 @@ use tokio::{
 };
 // Import with explicit feature flag
 use bolt4rs::{
-    bolt::response::success,
-    bolt::{Node, NodeRef},
-    bolt::summary::{Success, Summary},
-    messages::BoltRequest,
+    bolt::{
+        response::success,
+        summary::{Success, Summary},
+    },
+    messages::{BoltRequest, BoltResponse, Record},
+    BoltBoolean, BoltFloat, BoltInteger, BoltList, BoltMap, BoltNode, BoltNull, BoltString,
+    BoltType,
 };
 
 const MAX_CHUNK_SIZE: usize = 65_535;
@@ -288,73 +291,97 @@ impl BoltSession {
                             for batch in arrow_iter {
                                 let num_columns = batch.num_columns();
                                 let num_rows = batch.num_rows();
+                                let labels: BoltList = BoltList {
+                                    value: vec![BoltType::String(BoltString {
+                                        value: "Person".to_string(),
+                                    })],
+                                };
+                                let cols: BoltList = batch
+                                    .schema()
+                                    .fields()
+                                    .iter()
+                                    .map(|f| f.name().to_string())
+                                    .collect();
 
                                 debug!("sending {} rows", num_rows);
-                                let mut nodes = vec![]; // Placeholder for nodes, if needed
                                 for row_idx in 0..num_rows {
                                     if records_sent >= max_records {
                                         break;
                                     }
 
-                                    let mut record_response = BytesMut::new();
-                                    record_response.put_u8(0xB1); // tiny struct
-                                    record_response.put_u8(0x71); // RECORD
-                                    record_response.put_u8(0x90 + num_columns as u8); // tiny list with size
-
+                                    let mut values = vec![];
                                     for col_idx in 0..num_columns {
                                         let column = batch.column(col_idx);
-                                        if column.is_null(row_idx) {
-                                            record_response.put_u8(0xC0); // NULL
-                                            continue;
-                                        }
-                                        // Handle different array types
-                                        if let Some(array) =
-                                            column.as_any().downcast_ref::<StringArray>()
-                                        {
-                                            let value = array.value(row_idx);
-                                            let len = value.len();
-                                            if (len as u8) < 16 {
-                                                record_response.put_u8(0x80 + len as u8);
-                                            } else if len < 256 {
-                                                record_response.put_u8(0xD0);
-                                                record_response.put_u8(len as u8);
-                                            } else {
-                                                record_response.put_u8(0xD1);
-                                                record_response.put_u16(len as u16);
+
+                                        // Convert Arrow column to appropriate BoltType based on type
+                                        let value = match column.data_type() {
+                                            arrow::datatypes::DataType::Boolean => {
+                                                let array = column
+                                                    .as_any()
+                                                    .downcast_ref::<BooleanArray>()
+                                                    .unwrap();
+                                                BoltType::Boolean(BoltBoolean {
+                                                    value: array.value(row_idx),
+                                                })
                                             }
-                                            record_response.put_slice(value.as_bytes());
-                                        } else if let Some(array) =
-                                            column.as_any().downcast_ref::<Int64Array>()
-                                        {
-                                            let value = array.value(row_idx);
-                                            if (-16..=127).contains(&value) {
-                                                record_response.put_u8((value as i8) as u8);
-                                            } else {
-                                                record_response.put_u8(0xC9); // INT64
-                                                record_response.put_i64(value);
+                                            arrow::datatypes::DataType::Int64 => {
+                                                let array = column
+                                                    .as_any()
+                                                    .downcast_ref::<Int64Array>()
+                                                    .unwrap();
+                                                BoltType::Integer(BoltInteger {
+                                                    value: array.value(row_idx),
+                                                })
                                             }
-                                        } else if let Some(array) =
-                                            column.as_any().downcast_ref::<Float64Array>()
-                                        {
-                                            let value = array.value(row_idx);
-                                            record_response.put_u8(0xC1); // FLOAT
-                                            record_response.put_f64(value);
-                                        } else if let Some(array) =
-                                            column.as_any().downcast_ref::<BooleanArray>()
-                                        {
-                                            let value = array.value(row_idx);
-                                            record_response.put_u8(if value { 0xC3 } else { 0xC2 });
-                                        }
-                                        let node = Node::from(NodeRef::new(
-                                            0,
-                                            vec![], // Placeholder for labels
-                                            Bytes::from(vec![]), // Placeholder for properties, if needed
-                                            None, // Placeholder for identity, if needed
-                                        ));
-                                        nodes.push(node); // Collect nodes if needed
+                                            arrow::datatypes::DataType::Float64 => {
+                                                let array = column
+                                                    .as_any()
+                                                    .downcast_ref::<Float64Array>()
+                                                    .unwrap();
+                                                BoltType::Float(BoltFloat {
+                                                    value: array.value(row_idx),
+                                                })
+                                            }
+                                            arrow::datatypes::DataType::Utf8 => {
+                                                let array = column
+                                                    .as_any()
+                                                    .downcast_ref::<StringArray>()
+                                                    .unwrap();
+                                                BoltType::String(BoltString {
+                                                    value: array.value(row_idx).to_string(),
+                                                })
+                                            }
+                                            _ => BoltType::Null(BoltNull {}), // Handle other types as null
+                                        };
+                                        values.push(value);
                                     }
+                                    let mut properties = BoltMap::default();
+                                    for (name, value) in cols.iter().zip(values.iter()) {
+                                        properties.put(
+                                            BoltString {
+                                                value: name.to_string(),
+                                            },
+                                            value.clone(),
+                                        );
+                                    }
+                                    let node = BoltNode::new(
+                                        BoltInteger {
+                                            value: row_idx as i64,
+                                        },
+                                        labels.clone(),
+                                        properties,
+                                    );
+
+                                    // Create a Record response for each row
+                                    let record = Record {
+                                        data: BoltList {
+                                            value: vec![BoltType::Node(node)],
+                                        },
+                                    };
+                                    let response = BoltResponse::Record(record);
+                                    let bytes = response.to_bytes()?;
+                                    responses.push(bytes);
                                     records_sent += 1;
-                                    responses.push(record_response.freeze());
                                 }
                                 if records_sent >= max_records {
                                     break;
@@ -373,7 +400,8 @@ impl BoltSession {
                                 .build();
                             // Create Success with metadata and wrap it in Summary
                             let summary = Summary::Success(Success { metadata });
-                            Ok(vec![Bytes::from(summary.to_bytes()?)])
+                            responses.push(Bytes::from(summary.to_bytes()?));
+                            Ok(responses)
                         }
                         Err(e) => {
                             error!("Error creating arrow iterator: {}", e);

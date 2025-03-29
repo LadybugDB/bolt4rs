@@ -22,7 +22,7 @@ use begin::Begin;
 use bytes::Bytes;
 use failure::Failure;
 use ignore::Ignore;
-use record::Record;
+pub use record::Record;
 use run::Run;
 pub(crate) use success::Success;
 
@@ -316,6 +316,22 @@ impl BoltResponse {
                 output
             },
         )))
+    }
+
+    #[cfg_attr(feature = "unstable-bolt-protocol-impl-v2", allow(deprecated))]
+    pub fn into_bytes(self, version: Version) -> Result<Bytes> {
+        let bytes: Bytes = match self {
+            BoltResponse::Success(success) => success.into_bytes(version)?,
+            BoltResponse::Failure(failure) => failure.into_bytes(version)?,
+            BoltResponse::Ignore(ignore) => ignore.into_bytes(version)?,
+            BoltResponse::Record(record) => record.into_bytes(version)?,
+        };
+        Ok(bytes)
+    }
+
+    #[cfg_attr(feature = "unstable-bolt-protocol-impl-v2", allow(deprecated))]
+    pub fn to_bytes(self) -> Result<Bytes> {
+        self.into_bytes(Version::V4_1)
     }
 
     pub fn into_error(self, msg: &'static str) -> Error {
