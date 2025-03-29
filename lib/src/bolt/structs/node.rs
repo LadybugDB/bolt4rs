@@ -1,8 +1,10 @@
 use serde::de::{Deserialize, DeserializeOwned, Deserializer};
+use serde::Serialize;
 
 use crate::packstream::{de, from_bytes, from_bytes_ref, from_bytes_seed, Data};
 
 use super::de::{impl_visitor, impl_visitor_ref, Keys, Single};
+use bytes::Bytes;
 
 /// A node within the graph.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -14,6 +16,22 @@ pub struct NodeRef<'de> {
 }
 
 impl<'de> NodeRef<'de> {
+    /// Creates a new NodeRef with the provided data.
+    ///
+    /// # Parameters
+    /// - `id`: The unique identifier for the node
+    /// - `labels`: A vector of label strings for the node
+    /// - `properties`: The node's properties stored as serialized data
+    /// - `element_id`: An optional unique element identifier
+    pub fn new(id: u64, labels: Vec<&'de str>, properties: Bytes, element_id: Option<&'de str>) -> Self {
+        Self {
+            id,
+            labels,
+            properties: Data::new(properties),
+            element_id,
+        }
+    }
+
     /// An id for this node.
     ///
     /// Ids are guaranteed to remain stable for the duration of the session
@@ -100,7 +118,7 @@ impl<'de> Deserialize<'de> for NodeRef<'de> {
 }
 
 /// A node within the graph.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct Node {
     id: u64,
     labels: Vec<String>,
@@ -159,6 +177,13 @@ impl Node {
     /// The target type must not borrow data from the node's properties.
     pub fn into<T: DeserializeOwned>(self) -> Result<T, de::Error> {
         from_bytes(self.properties.into_inner())
+    }
+
+    /// Serialize the node to a byte vector.
+    ///
+    /// This uses the packstream encoding to serialize the node.
+    pub fn to_bytes(&self) -> Result<Vec<u8>, crate::errors::Error> {
+        Ok(crate::packstream::to_bytes(self)?.to_vec())
     }
 }
 

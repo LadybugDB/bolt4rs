@@ -3,7 +3,7 @@
 use bytes::Bytes;
 use serde::{
     de::{Deserialize, DeserializeOwned, DeserializeSeed},
-    Deserializer,
+    Deserializer, Serialize,
 };
 
 pub mod de;
@@ -13,7 +13,7 @@ pub use debug::Dbg;
 #[cfg(test)]
 pub use value::{bolt, BoltBytesBuilder};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub(crate) struct Data {
     bytes: Bytes,
     keep_alive: Bytes,

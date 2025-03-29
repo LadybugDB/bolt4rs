@@ -12,6 +12,7 @@ use tokio::{
 // Import with explicit feature flag
 use bolt4rs::{
     bolt::response::success,
+    bolt::{Node, NodeRef},
     bolt::summary::{Success, Summary},
     messages::BoltRequest,
 };
@@ -289,6 +290,7 @@ impl BoltSession {
                                 let num_rows = batch.num_rows();
 
                                 debug!("sending {} rows", num_rows);
+                                let mut nodes = vec![]; // Placeholder for nodes, if needed
                                 for row_idx in 0..num_rows {
                                     if records_sent >= max_records {
                                         break;
@@ -343,6 +345,13 @@ impl BoltSession {
                                             let value = array.value(row_idx);
                                             record_response.put_u8(if value { 0xC3 } else { 0xC2 });
                                         }
+                                        let node = Node::from(NodeRef::new(
+                                            0,
+                                            vec![], // Placeholder for labels
+                                            Bytes::from(vec![]), // Placeholder for properties, if needed
+                                            None, // Placeholder for identity, if needed
+                                        ));
+                                        nodes.push(node); // Collect nodes if needed
                                     }
                                     records_sent += 1;
                                     responses.push(record_response.freeze());
