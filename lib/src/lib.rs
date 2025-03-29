@@ -456,7 +456,7 @@ mod connection;
 mod convert;
 mod errors;
 mod graph;
-mod messages;
+pub mod messages;
 #[cfg(feature = "unstable-serde-packstream-format")]
 mod packstream;
 mod pool;

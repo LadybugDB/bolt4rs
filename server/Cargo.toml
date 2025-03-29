@@ -17,7 +17,7 @@ tokio = { version = "1.0", features = ["full"] }
 bytes = "1.0"
 log = "0.4"
 env_logger = "0.10"
-bolt4rs = { path = "../lib", features = ["unstable-bolt-protocol-impl-v2"] }
+bolt4rs = { path = "../lib", features = ["unstable-bolt-protocol-impl-v2", "unstable-serde-packstream-format"] }
 anyhow = "1.0"
 kuzu = { version = "^0.8.2", features = ["arrow"] }
 arrow-array = { version = "53.0.0", default-features = false }

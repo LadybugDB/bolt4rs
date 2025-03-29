@@ -209,6 +209,85 @@ impl BoltRequest {
         };
         Ok(bytes)
     }
+
+    #[cfg_attr(feature = "unstable-bolt-protocol-impl-v2", allow(deprecated))]
+    pub fn parse(version: Version, mut response: Bytes) -> Result<BoltRequest> {
+        if response.len() < 2 {
+            return Err(Error::UnknownMessage("message too short".to_owned()));
+        }
+
+        let marker = response[0];
+        let signature = response[1];
+
+        match (marker, signature) {
+            (0xB1, 0x01) => {
+                // HELLO
+                if hello::Hello::can_parse(version, &response) {
+                    let hello = hello::Hello::parse(version, &mut response)?;
+                    return Ok(BoltRequest::Hello(hello));
+                }
+            }
+            (_, 0x10) => {
+                // RUN
+                if Run::can_parse(version, &response) {
+                    let run = Run::parse(version, &mut response)?;
+                    return Ok(BoltRequest::Run(run));
+                }
+            }
+            (0xB1, 0x3F) => {
+                // PULL
+                if pull::Pull::can_parse(version, &response) {
+                    let pull = pull::Pull::parse(version, &mut response)?;
+                    return Ok(BoltRequest::Pull(pull));
+                }
+            }
+            (0xB1, 0x2F) => {
+                // DISCARD
+                if discard::Discard::can_parse(version, &response) {
+                    let discard = discard::Discard::parse(version, &mut response)?;
+                    return Ok(BoltRequest::Discard(discard));
+                }
+            }
+            (_, 0x11) => {
+                // BEGIN
+                if Begin::can_parse(version, &response) {
+                    let begin = Begin::parse(version, &mut response)?;
+                    return Ok(BoltRequest::Begin(begin));
+                }
+            }
+            (0xB0, 0x12) => {
+                // COMMIT
+                if commit::Commit::can_parse(version, &response) {
+                    let commit = commit::Commit::parse(version, &mut response)?;
+                    return Ok(BoltRequest::Commit(commit));
+                }
+            }
+            (0xB0, 0x13) => {
+                // ROLLBACK
+                if rollback::Rollback::can_parse(version, &response) {
+                    let rollback = rollback::Rollback::parse(version, &mut response)?;
+                    return Ok(BoltRequest::Rollback(rollback));
+                }
+            }
+            (0xB0, 0x0F) => {
+                // RESET
+                if reset::Reset::can_parse(version, &response) {
+                    let reset = reset::Reset::parse(version, &mut response)?;
+                    return Ok(BoltRequest::Reset(reset));
+                }
+            }
+            _ => {}
+        }
+
+        Err(Error::UnknownMessage(response.iter().fold(
+            "unknown message ".to_owned(),
+            |mut output, byte| {
+                use std::fmt::Write;
+                let _ = write!(output, "{:02X}", byte);
+                output
+            },
+        )))
+    }
 }
 
 impl BoltResponse {

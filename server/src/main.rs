@@ -13,6 +13,7 @@ use tokio::{
 use bolt4rs::{
     bolt::response::success,
     bolt::summary::{Success, Summary},
+    messages::BoltRequest,
 };
 
 const MAX_CHUNK_SIZE: usize = 65_535;
@@ -72,7 +73,8 @@ async fn handle_connection(system_db: &Arc<kuzu::Database>, socket: TcpStream) -
         match read_chunked_message(&mut stream).await {
             Ok(Some(msg)) => {
                 debug!("Received message bytes: {:02x?}", msg);
-                let responses = session.handle_message(system_db, msg).await?;
+                let req = BoltRequest::parse(bolt4rs::Version::V4_1, msg)?;
+                let responses = session.handle_message(system_db, req).await?;
                 for response in responses {
                     debug!("Sending response bytes: {:02x?}", response);
                     send_chunked_message(&mut stream, response).await?;
@@ -166,18 +168,17 @@ impl BoltSession {
         }
     }
 
-    async fn handle_message(&mut self, db: &Arc<kuzu::Database>, msg: Bytes) -> Result<Vec<Bytes>> {
-        let marker: u8 = msg[0];
-        let signature: u8 = msg[1];
+    #[cfg_attr(feature = "unstable-bolt-protocol-impl-v2", allow(deprecated))]
+    async fn handle_message(
+        &mut self,
+        db: &Arc<kuzu::Database>,
+        req: BoltRequest,
+    ) -> Result<Vec<Bytes>> {
+        debug!("Handling message: {req:?}");
 
-        debug!(
-            "Handling message: marker={:02x}, signature={:02x}",
-            marker, signature
-        );
-
-        match (marker, signature) {
+        match req {
             // HELLO
-            (0xB1, 0x01) => {
+            BoltRequest::Hello(_) => {
                 self.authenticated = true;
 
                 // Create success metadata with server info and connection id
@@ -192,72 +193,20 @@ impl BoltSession {
                 Ok(vec![Bytes::from(summary.to_bytes()?)])
             }
 
-            // INIT
-            (0xB2, 0x01) => {
-                self.authenticated = true;
-                let mut response = BytesMut::new();
-                response.put_u8(0xB1); // tiny struct
-                response.put_u8(0x70); // SUCCESS
-                response.put_u8(0xA0); // empty map
-                Ok(vec![response.freeze()])
-            }
-
             // RUN
-            (0xB3, 0x10) => {
+            BoltRequest::Run(run) => {
                 match self.authenticated {
                     false => Err(anyhow::anyhow!("Not authenticated")),
                     true => {
-                        // Skip marker and signature which we've already read
-                        let mut bytes = msg.slice(2..);
-
-                        // Read query string - handle different string formats
-                        let str_marker = bytes[0];
-                        let (str_len, offset) = match str_marker {
-                            marker if (marker & 0xF0) == 0x80 => ((marker & 0x0F), 1),
-                            0xD0 => (bytes[1], 2),
-                            0xD1 => (u16::from_be_bytes([bytes[1], bytes[2]]) as u8, 3),
-                            0xD2 => (
-                                u32::from_be_bytes([bytes[1], bytes[2], bytes[3], bytes[4]]) as u8,
-                                5,
-                            ),
-                            _ => return Err(anyhow::anyhow!("Invalid string marker")),
-                        };
-
-                        let start: usize = offset as usize;
-                        let str_size: usize = str_len as usize;
-
-                        let query =
-                            String::from_utf8(bytes.slice(start..start + str_size).to_vec())?;
-                        bytes = bytes.slice(start + str_size..);
-
-                        // Read parameters map
-                        let mut parameters = HashMap::new();
-                        if bytes[0] & 0xF0 == 0xA0 {
-                            // TINY_MAP
-                            let map_size = bytes[0] & 0x0F;
-                            bytes = bytes.slice(1..);
-                            for _ in 0..map_size {
-                                // Read key
-                                let key_marker = bytes[0];
-                                let key_len = (key_marker & 0x0F) as usize;
-                                let key = String::from_utf8(bytes.slice(1..1 + key_len).to_vec())?;
-                                bytes = bytes.slice(1 + key_len..);
-
-                                // Read value
-                                let val_marker = bytes[0];
-                                let val_len = (val_marker & 0x0F) as usize;
-                                let value =
-                                    String::from_utf8(bytes.slice(1..1 + val_len).to_vec())?;
-                                bytes = bytes.slice(1 + val_len..);
-
-                                parameters.insert(key, value);
-                            }
-                        }
-
                         // Store the query
                         self.current_query = Some(Query {
-                            statement: query,
-                            parameters,
+                            statement: run.query.to_string(),
+                            parameters: run
+                                .parameters
+                                .value
+                                .into_iter()
+                                .map(|(k, v)| (k.to_string(), v.to_string()))
+                                .collect(),
                         });
 
                         debug!("Stored query: {:?}", self.current_query);
@@ -302,76 +251,29 @@ impl BoltSession {
                                 }
                             }
                         }
+                        // Create success metadata with server info and connection id
+                        let metadata = success::MetaBuilder::new()
+                            .server("kuzu/0.8.2")
+                            .connection_id("bolt-31") // Example connection ID
+                            .build();
 
-                        // Rest of the success response
-                        let mut response = BytesMut::new();
-                        response.put_u8(0xB1); // tiny struct
-                        response.put_u8(0x70); // SUCCESS
-                        response.put_u8(0xA1); // tiny map, size 1
-                        response.put_u8(0x86); // tiny string length
-                        response.put_slice(b"fields");
-                        response.put_u8(0x91); // tiny list, size 1
-                        response.put_u8(0x81); // tiny string length
-                        response.put_slice(b"1");
+                        // Create Success with metadata and wrap it in Summary
+                        let summary = Summary::Success(Success { metadata });
 
-                        Ok(vec![response.freeze()])
+                        Ok(vec![Bytes::from(summary.to_bytes()?)])
                     }
                 }
             }
 
             // PULL_ALL or PULL or PULL_N
-            (0xB0, 0x3F) | (0xB1, 0x3F) | (0xB1, 0x2F) => {
+            BoltRequest::Pull(pull) => {
                 if self.result.is_none() {
                     return Err(anyhow::anyhow!("No results available"));
                 }
 
                 // For PULL_N, we need to read the n parameter
-                let mut max_records = 1000; // Default to 1000 records for PULL/PULL_ALL
+                let max_records = pull.extra.get("n").unwrap_or(1000) as usize; // Default to 1000 records for PULL/PULL_ALL
                 let chunk_size = 100; // Process in smaller chunks
-
-                // Parse PULL_N parameters if needed
-                if marker == 0xB1 && signature == 0x2F {
-                    // Skip the marker and signature bytes
-                    let mut bytes = msg.slice(2..);
-
-                    // Read the map size
-                    if bytes[0] & 0xF0 == 0xA0 {
-                        // TINY_MAP
-                        let map_size = bytes[0] & 0x0F;
-                        bytes = bytes.slice(1..);
-
-                        // Read map entries
-                        for _ in 0..map_size {
-                            // Read key
-                            let key_marker = bytes[0];
-                            let key_len = (key_marker & 0x0F) as usize;
-                            let key = String::from_utf8(bytes.slice(1..1 + key_len).to_vec())?;
-                            bytes = bytes.slice(1 + key_len..);
-
-                            // Read value
-                            if key == "n" {
-                                if bytes[0] == 0xC9 {
-                                    // INT64
-                                    let n_bytes: [u8; 8] = bytes.slice(1..9).as_ref().try_into()?;
-                                    let n = i64::from_be_bytes(n_bytes);
-                                    max_records = n as usize;
-                                    bytes = bytes.slice(9..);
-                                } else if bytes[0] >= 0xF0 {
-                                    // TINY_INT negative
-                                    max_records = (bytes[0] - 0xF0) as usize;
-                                    bytes = bytes.slice(1..);
-                                } else if bytes[0] <= 0x7F {
-                                    // TINY_INT positive
-                                    max_records = bytes[0] as usize;
-                                    bytes = bytes.slice(1..);
-                                }
-                            } else {
-                                // Skip any other values
-                                bytes = bytes.slice(1..);
-                            }
-                        }
-                    }
-                }
 
                 let mut responses = Vec::new();
                 let mut records_sent = 0;
@@ -480,17 +382,16 @@ impl BoltSession {
                 }
             }
 
-            // GOODBYE
-            (0xB0, 0x02) => Ok(vec![Bytes::new()]),
-
+            // Return empty success for unknown messages
             _ => {
-                debug!("Unsupported message type: {:02x} {:02x}", marker, signature);
-                // Return empty success for unknown messages
-                let mut response = BytesMut::new();
-                response.put_u8(0xB1);
-                response.put_u8(0x70);
-                response.put_u8(0xA0);
-                Ok(vec![response.freeze()])
+                debug!("Unsupported message type: {:?}", req);
+                let metadata = success::MetaBuilder::new()
+                    .server("kuzu/0.8.2") // Example server version
+                    .connection_id("bolt-31") // Example connection ID
+                    .build();
+                // Create Success with metadata and wrap it in Summary
+                let summary = Summary::Success(Success { metadata });
+                Ok(vec![Bytes::from(summary.to_bytes()?)])
             }
         }
     }

@@ -10,7 +10,7 @@ use bolt4rs_macros::BoltStruct;
     deprecated(since = "0.9.0", note = "Use `crate::bolt::Pull` instead.")
 )]
 pub struct Pull {
-    extra: BoltMap,
+    pub extra: BoltMap,
 }
 
 impl Default for Pull {

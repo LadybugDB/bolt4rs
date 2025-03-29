@@ -4,9 +4,9 @@ use bolt4rs_macros::BoltStruct;
 #[derive(Debug, PartialEq, Clone, BoltStruct)]
 #[signature(0xB3, 0x10)]
 pub struct Run {
-    query: BoltString,
-    parameters: BoltMap,
-    extra: BoltMap,
+    pub query: BoltString,
+    pub parameters: BoltMap,
+    pub extra: BoltMap,
 }
 
 impl Run {
