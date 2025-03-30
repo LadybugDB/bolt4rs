@@ -8,7 +8,7 @@ echo "Cleaning up any existing bolt4rs-server process..."
 pkill -f bolt4rs-server || true
 sleep 1
 
-export RUST_LOG=debug
+export RUST_LOG=info
 
 # Start the server in background
 echo "Starting bolt4rs-server..."

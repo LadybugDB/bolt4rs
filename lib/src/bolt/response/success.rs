@@ -1,9 +1,17 @@
+use rustls::crypto::hash::Hash;
 use serde::Deserialize;
 use serde::Serialize;
+use std::collections::HashMap;
+use std::vec;
+
+use crate::{
+    types::{BoltMap, BoltString},
+    BoltType,
+};
 
 /// Represents the metadata map often contained within a SUCCESS message,
 /// particularly the one sent after a HELLO message.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Meta {
     #[serde(default)]
     pub(crate) server: String,
@@ -13,6 +21,8 @@ pub struct Meta {
     pub(crate) done: bool,
     #[serde(default = "default_false")]
     pub(crate) has_more: bool,
+    #[serde(default)]
+    pub(crate) fields: Vec<String>,
 }
 
 fn default_true() -> bool {
@@ -27,6 +37,7 @@ fn default_false() -> bool {
 pub struct MetaBuilder {
     server: String,
     connection_id: String,
+    fields: Vec<String>,
     done: bool,
     has_more: bool,
 }
@@ -38,6 +49,7 @@ impl MetaBuilder {
         Self {
             server: String::new(),
             connection_id: String::new(),
+            fields: vec![],
             done: true,
             has_more: false,
         }
@@ -67,6 +79,26 @@ impl MetaBuilder {
         self
     }
 
+    /// Adds a custom field with the provided key and value.
+    pub fn field<K>(mut self, key: K) -> Self
+    where
+        K: Into<String>,
+    {
+        self.fields.push(key.into());
+        self
+    }
+
+    /// Create one from an iterator
+    pub fn fields<K>(mut self, fields: impl IntoIterator<Item = K>) -> Self
+    where
+        K: Into<String>,
+    {
+        for key in fields {
+            self.fields.push(key.into());
+        }
+        self
+    }
+
     /// Builds the Meta instance.
     pub fn build(self) -> Meta {
         Meta {
@@ -74,6 +106,7 @@ impl MetaBuilder {
             connection_id: self.connection_id,
             done: self.done,
             has_more: self.has_more,
+            fields: self.fields,
         }
     }
 }
@@ -89,6 +122,7 @@ mod tests {
     use super::*;
     use crate::bolt::MessageResponse; // Trait needed for `parse`
     use crate::packstream::bolt; // For building test data
+    use crate::types::{BoltFloat, BoltInteger, BoltString};
 
     #[test]
     fn should_deserialize_success_metadata() {
@@ -146,5 +180,34 @@ mod tests {
         assert_eq!(meta.connection_id, "bolt-42");
         assert_eq!(meta.done, false);
         assert_eq!(meta.has_more, true);
+    }
+
+    #[test]
+    fn should_create_meta_with_custom_fields() {
+        let meta = MetaBuilder::new()
+            .server("Neo4j/4.2.0")
+            .field("qid".to_string())
+            .field("db".to_string())
+            .build();
+
+        assert_eq!(meta.server, "Neo4j/4.2.0");
+        assert!(meta.fields.contains(&("qid".to_string())));
+        assert!(meta.fields.contains(&("db".to_string())));
+    }
+
+    #[test]
+    fn should_create_meta_with_multiple_fields() {
+        let fields = vec![
+            "qid".to_string(),
+            "db".to_string(),
+            "query_time".to_string(),
+        ];
+
+        let meta = MetaBuilder::new().fields(fields).build();
+
+        assert_eq!(meta.fields.len(), 3);
+        assert!(meta.fields.contains(&("qid".to_string())));
+        assert!(meta.fields.contains(&("db".to_string())));
+        assert!(meta.fields.contains(&("query_time".to_string())));
     }
 }

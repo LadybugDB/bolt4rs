@@ -3,8 +3,8 @@ use arrow_array::{Array, BooleanArray, Float64Array, Int64Array, StringArray};
 use bytes::{Bytes, BytesMut};
 use kuzu::{Connection, Database, QueryResult, SystemConfig};
 use log::{debug, error};
-use std::collections::HashMap;
 use std::sync::Arc;
+use std::{collections::HashMap, vec};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, BufStream},
     net::{TcpListener, TcpStream},
@@ -16,8 +16,7 @@ use bolt4rs::{
         summary::{Success, Summary},
     },
     messages::{BoltRequest, BoltResponse, Record},
-    BoltBoolean, BoltFloat, BoltInteger, BoltList, BoltMap, BoltNode, BoltNull, BoltString,
-    BoltType,
+    BoltBoolean, BoltFloat, BoltInteger, BoltList, BoltNull, BoltString, BoltType,
 };
 
 const MAX_CHUNK_SIZE: usize = 65_535;
@@ -172,6 +171,10 @@ impl BoltSession {
         }
     }
 
+    async fn get_col_info(&mut self) -> Result<Vec<String>> {
+        Ok(self.result.as_ref().unwrap().get_column_names())
+    }
+
     #[cfg_attr(feature = "unstable-bolt-protocol-impl-v2", allow(deprecated))]
     async fn handle_message(
         &mut self,
@@ -255,10 +258,12 @@ impl BoltSession {
                                 }
                             }
                         }
+                        let cols = self.get_col_info().await?;
                         // Create success metadata with server info and connection id
                         let metadata = success::MetaBuilder::new()
                             .server("kuzu/0.8.2")
                             .connection_id("bolt-31") // Example connection ID
+                            .fields(cols.into_iter())
                             .build();
 
                         // Create Success with metadata and wrap it in Summary
@@ -291,17 +296,6 @@ impl BoltSession {
                             for batch in arrow_iter {
                                 let num_columns = batch.num_columns();
                                 let num_rows = batch.num_rows();
-                                let labels: BoltList = BoltList {
-                                    value: vec![BoltType::String(BoltString {
-                                        value: "Person".to_string(),
-                                    })],
-                                };
-                                let cols: BoltList = batch
-                                    .schema()
-                                    .fields()
-                                    .iter()
-                                    .map(|f| f.name().to_string())
-                                    .collect();
 
                                 debug!("sending {} rows", num_rows);
                                 for row_idx in 0..num_rows {
@@ -309,6 +303,7 @@ impl BoltSession {
                                         break;
                                     }
 
+                                    // Create a Row for each record
                                     let mut values = vec![];
                                     for col_idx in 0..num_columns {
                                         let column = batch.column(col_idx);
@@ -355,29 +350,12 @@ impl BoltSession {
                                         };
                                         values.push(value);
                                     }
-                                    let mut properties = BoltMap::default();
-                                    for (name, value) in cols.iter().zip(values.iter()) {
-                                        properties.put(
-                                            BoltString {
-                                                value: name.to_string(),
-                                            },
-                                            value.clone(),
-                                        );
-                                    }
-                                    let node = BoltNode::new(
-                                        BoltInteger {
-                                            value: row_idx as i64,
-                                        },
-                                        labels.clone(),
-                                        properties,
-                                    );
+
+                                    // Create values as a BoltList
+                                    let data_values = BoltList { value: values };
 
                                     // Create a Record response for each row
-                                    let record = Record {
-                                        data: BoltList {
-                                            value: vec![BoltType::Node(node)],
-                                        },
-                                    };
+                                    let record = Record { data: data_values };
                                     let response = BoltResponse::Record(record);
                                     let bytes = response.to_bytes()?;
                                     responses.push(bytes);

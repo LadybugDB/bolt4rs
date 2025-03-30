@@ -31,13 +31,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await?;
 
     println!("Query results:");
+    let mut count = 0;
     while let Ok(Some(row)) = stream.next().await {
         println!(
             "Name: {}, Age: {}",
             row.get::<String>("NAME")?,
             row.get::<i64>("AGE")?
         );
+        count += 1;
     }
+    println!("Total rows returned: {}", count);
 
     // Finish the stream and get summary
     stream.finish().await?;
