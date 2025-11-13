@@ -151,16 +151,16 @@ struct Query {
     parameters: HashMap<String, String>,
 }
 
-struct BoltSession {
+struct BoltSession<'a> {
     authenticated: bool,
     current_query: Option<Query>,
-    result: Option<QueryResult>,
+    result: Option<QueryResult<'a>>,
     result_consumed: bool,
     has_more: bool,
 }
 
 // Return type changed to Vec<Bytes> to support multiple responses
-impl BoltSession {
+impl<'a> BoltSession<'a> {
     fn new() -> Self {
         Self {
             authenticated: false,
@@ -178,7 +178,7 @@ impl BoltSession {
     #[cfg_attr(feature = "unstable-bolt-protocol-impl-v2", allow(deprecated))]
     async fn handle_message(
         &mut self,
-        db: &Arc<lbug::Database>,
+        db: &'a Arc<lbug::Database>,
         req: BoltRequest,
     ) -> Result<Vec<Bytes>> {
         debug!("Handling message: {req:?}");
