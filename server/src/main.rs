@@ -1,7 +1,7 @@
 use anyhow::Result;
 use arrow_array::{Array, BooleanArray, Float64Array, Int64Array, StringArray};
 use bytes::{Bytes, BytesMut};
-use kuzu::{Connection, Database, QueryResult, SystemConfig};
+use lbug::{Connection, Database, QueryResult, SystemConfig};
 use log::{debug, error};
 use std::sync::Arc;
 use std::{collections::HashMap, vec};
@@ -24,7 +24,7 @@ const MAX_CHUNK_SIZE: usize = 65_535;
 #[tokio::main]
 async fn main() -> Result<()> {
     env_logger::init();
-    let system_db = Arc::new(kuzu_init().await?);
+    let system_db = Arc::new(lbug_init().await?);
     let listener = TcpListener::bind("127.0.0.1:7687").await?;
     debug!("Bolt server listening on 127.0.0.1:7687");
 
@@ -41,13 +41,13 @@ async fn main() -> Result<()> {
     }
 }
 
-async fn kuzu_init() -> Result<kuzu::Database> {
+async fn lbug_init() -> Result<lbug::Database> {
     let system_db = Database::new("./system", SystemConfig::default())?;
     debug!("Created system database");
     Ok(system_db)
 }
 
-async fn handle_connection(system_db: &Arc<kuzu::Database>, socket: TcpStream) -> Result<()> {
+async fn handle_connection(system_db: &Arc<lbug::Database>, socket: TcpStream) -> Result<()> {
     let mut stream = BufStream::new(socket);
 
     // Read first 4 bytes - these should be the magic bytes
@@ -178,7 +178,7 @@ impl BoltSession {
     #[cfg_attr(feature = "unstable-bolt-protocol-impl-v2", allow(deprecated))]
     async fn handle_message(
         &mut self,
-        db: &Arc<kuzu::Database>,
+        db: &Arc<lbug::Database>,
         req: BoltRequest,
     ) -> Result<Vec<Bytes>> {
         debug!("Handling message: {req:?}");
@@ -190,7 +190,7 @@ impl BoltSession {
 
                 // Create success metadata with server info and connection id
                 let metadata = success::MetaBuilder::new()
-                    .server("kuzu/0.8.2")
+                    .server("lbug/0.12.0")
                     .connection_id("bolt-31") // Example connection ID
                     .build();
 
@@ -261,7 +261,7 @@ impl BoltSession {
                         let cols = self.get_col_info().await?;
                         // Create success metadata with server info and connection id
                         let metadata = success::MetaBuilder::new()
-                            .server("kuzu/0.8.2")
+                            .server("lbug/0.12.0")
                             .connection_id("bolt-31") // Example connection ID
                             .fields(cols.into_iter())
                             .build();
@@ -371,7 +371,7 @@ impl BoltSession {
                             self.has_more = !self.result_consumed;
 
                             let metadata = success::MetaBuilder::new()
-                                .server("kuzu/0.8.2") // Example server version
+                                .server("lbug/0.12.0") // Example server version
                                 .connection_id("bolt-31") // Example connection ID
                                 .done(self.result_consumed) // Set done based on consumption
                                 .has_more(!self.result_consumed && !exhausted_iter) // Set has_more based on consumption
@@ -388,7 +388,7 @@ impl BoltSession {
                     }
                 } else {
                     let metadata = success::MetaBuilder::new()
-                        .server("kuzu/0.8.2") // Example server version
+                        .server("lbug/0.12.0") // Example server version
                         .connection_id("bolt-31") // Example connection ID
                         .build();
                     // Create Success with metadata and wrap it in Summary
@@ -401,7 +401,7 @@ impl BoltSession {
             _ => {
                 debug!("Unsupported message type: {:?}", req);
                 let metadata = success::MetaBuilder::new()
-                    .server("kuzu/0.8.2") // Example server version
+                    .server("lbug/0.12.0") // Example server version
                     .connection_id("bolt-31") // Example connection ID
                     .build();
                 // Create Success with metadata and wrap it in Summary
