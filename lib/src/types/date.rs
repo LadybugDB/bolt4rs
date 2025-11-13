@@ -3,7 +3,7 @@ use crate::{
     types::{BoltInteger, Result},
 };
 use bolt4rs_macros::BoltStruct;
-use chrono::{Days, NaiveDate, NaiveDateTime};
+use chrono::{Days, NaiveDate};
 use std::convert::TryInto;
 
 #[derive(Debug, PartialEq, Eq, Clone, BoltStruct)]
@@ -32,11 +32,11 @@ impl TryFrom<&BoltDate> for NaiveDate {
     fn try_from(value: &BoltDate) -> Result<Self> {
         let days = Days::new(value.days.value.unsigned_abs());
         if value.days.value >= 0 {
-            NaiveDateTime::UNIX_EPOCH.checked_add_days(days)
+            chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.checked_add_days(days)
         } else {
-            NaiveDateTime::UNIX_EPOCH.checked_sub_days(days)
+            chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.checked_sub_days(days)
         }
-        .map_or(Err(Error::ConversionError), |o| Ok(o.date()))
+        .map_or(Err(Error::ConversionError), |o| Ok(o.date_naive()))
     }
 }
 

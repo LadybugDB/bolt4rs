@@ -61,7 +61,7 @@ impl<'de> DateTimeZoneIdRef<'de> {
         self.nanoseconds
     }
 
-    /// The timezone offset in seconds from UTC.
+    /// The timezone identifier.
     pub fn timezone_identifier(&self) -> &'de str {
         self.tz_id
     }
@@ -71,7 +71,7 @@ impl<'de> DateTimeZoneIdRef<'de> {
     pub fn timezone_offset_seconds(&self) -> Option<i32> {
         let tz = chrono_tz::Tz::from_str(self.tz_id).ok()?;
         let offset =
-            chrono::TimeZone::offset_from_utc_datetime(&tz, &chrono::NaiveDateTime::UNIX_EPOCH);
+            chrono::TimeZone::offset_from_utc_datetime(&tz, &chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.naive_utc());
         let offset = chrono::Offset::fix(&offset);
         Some(offset.local_minus_utc())
     }
@@ -192,7 +192,7 @@ impl<'de> LegacyDateTimeZoneIdRef<'de> {
     pub fn timezone_offset_seconds(&self) -> Option<i32> {
         let tz = chrono_tz::Tz::from_str(self.tz_id).ok()?;
         let offset =
-            chrono::TimeZone::offset_from_utc_datetime(&tz, &chrono::NaiveDateTime::UNIX_EPOCH);
+            chrono::TimeZone::offset_from_utc_datetime(&tz, &chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.naive_utc());
         let offset = chrono::Offset::fix(&offset);
         Some(offset.local_minus_utc())
     }
@@ -321,7 +321,7 @@ impl DateTimeZoneId {
     pub fn timezone_offset_seconds(&self) -> Option<i32> {
         let tz = chrono_tz::Tz::from_str(&self.tz_id).ok()?;
         let offset =
-            chrono::TimeZone::offset_from_utc_datetime(&tz, &chrono::NaiveDateTime::UNIX_EPOCH);
+            chrono::TimeZone::offset_from_utc_datetime(&tz, &chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.naive_utc());
         let offset = chrono::Offset::fix(&offset);
         Some(offset.local_minus_utc())
     }
@@ -369,7 +369,7 @@ impl LegacyDateTimeZoneId {
     pub fn timezone_offset_seconds(&self) -> Option<i32> {
         let tz = chrono_tz::Tz::from_str(&self.tz_id).ok()?;
         let offset =
-            chrono::TimeZone::offset_from_utc_datetime(&tz, &chrono::NaiveDateTime::UNIX_EPOCH);
+            chrono::TimeZone::offset_from_utc_datetime(&tz, &chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.naive_utc());
         let offset = chrono::Offset::fix(&offset);
         Some(offset.local_minus_utc())
     }
