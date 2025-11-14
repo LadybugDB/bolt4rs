@@ -230,7 +230,7 @@ jobs:
         uses: taiki-e/install-action@nextest
 
       - name: Run ${{ matrix.name }} unit tests
-        run: cargo +$MSRV nextest run --lib --all-features --locked
+        run: cargo +$MSRV nextest run --lib --all-features
 
   release:
     name: Release
