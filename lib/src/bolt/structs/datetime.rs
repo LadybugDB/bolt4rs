@@ -70,8 +70,10 @@ impl<'de> DateTimeZoneIdRef<'de> {
     /// If the value could not be parsed or is unknown, None is returned.
     pub fn timezone_offset_seconds(&self) -> Option<i32> {
         let tz = chrono_tz::Tz::from_str(self.tz_id).ok()?;
-        let offset =
-            chrono::TimeZone::offset_from_utc_datetime(&tz, &chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.naive_utc());
+        let offset = chrono::TimeZone::offset_from_utc_datetime(
+            &tz,
+            &chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.naive_utc(),
+        );
         let offset = chrono::Offset::fix(&offset);
         Some(offset.local_minus_utc())
     }
@@ -191,8 +193,10 @@ impl<'de> LegacyDateTimeZoneIdRef<'de> {
     /// If the value could not be parsed or is unknown, None is returned.
     pub fn timezone_offset_seconds(&self) -> Option<i32> {
         let tz = chrono_tz::Tz::from_str(self.tz_id).ok()?;
-        let offset =
-            chrono::TimeZone::offset_from_utc_datetime(&tz, &chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.naive_utc());
+        let offset = chrono::TimeZone::offset_from_utc_datetime(
+            &tz,
+            &chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.naive_utc(),
+        );
         let offset = chrono::Offset::fix(&offset);
         Some(offset.local_minus_utc())
     }
@@ -320,8 +324,10 @@ impl DateTimeZoneId {
     /// If the value could not be parsed or is unknown, None is returned.
     pub fn timezone_offset_seconds(&self) -> Option<i32> {
         let tz = chrono_tz::Tz::from_str(&self.tz_id).ok()?;
-        let offset =
-            chrono::TimeZone::offset_from_utc_datetime(&tz, &chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.naive_utc());
+        let offset = chrono::TimeZone::offset_from_utc_datetime(
+            &tz,
+            &chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.naive_utc(),
+        );
         let offset = chrono::Offset::fix(&offset);
         Some(offset.local_minus_utc())
     }
@@ -368,8 +374,10 @@ impl LegacyDateTimeZoneId {
     /// If the value could not be parsed or is unknown, None is returned.
     pub fn timezone_offset_seconds(&self) -> Option<i32> {
         let tz = chrono_tz::Tz::from_str(&self.tz_id).ok()?;
-        let offset =
-            chrono::TimeZone::offset_from_utc_datetime(&tz, &chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.naive_utc());
+        let offset = chrono::TimeZone::offset_from_utc_datetime(
+            &tz,
+            &chrono::DateTime::<chrono::Utc>::UNIX_EPOCH.naive_utc(),
+        );
         let offset = chrono::Offset::fix(&offset);
         Some(offset.local_minus_utc())
     }
