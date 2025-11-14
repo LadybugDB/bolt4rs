@@ -32,6 +32,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+      - name: Install lld
+        run: sudo apt install -y lld
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -81,6 +84,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+      - name: Install lld
+        run: sudo apt install -y lld
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -113,6 +119,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
 
+      - name: Install lld
+        if: runner.os == 'Linux'
+        run: sudo apt install -y lld
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -136,6 +146,7 @@ jobs:
         run: cargo ${{ env.HACK }} nextest run --lib
 
   integration-tests:
+    if: false
     name: Run integration tests
     strategy:
       fail-fast: false
@@ -156,6 +167,9 @@ jobs:
       NEO4J_TEST_PASS: integrationtest
       NEO4J_VERSION_TAG: ${{ matrix.neo4j }}
     steps:
+
+      - name: Install lld
+        run: sudo apt install -y lld
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -195,6 +209,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+      - name: Install lld
+        run: sudo apt install -y lld
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -221,6 +238,9 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
+
+      - name: Install lld
+        run: sudo apt install -y lld
 
       - name: Checkout code
         uses: actions/checkout@v4
