@@ -8,8 +8,8 @@ on:
         required: true
         type: choice
         options:
-          - neo4rs
-          - neo4rs-macros
+          - bolt4rs
+          - bolt4rs-macros
       version:
         description: >-
           What version to release.
@@ -73,6 +73,6 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ inputs.version }}
-          crate-name: ${{ inputs.crate || 'neo4rs' }}
+          crate-name: ${{ inputs.crate || 'bolt4rs' }}
           check-semver: true
           base-branch: main
