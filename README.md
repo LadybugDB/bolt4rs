@@ -28,7 +28,7 @@ Test succeeded!
 Cleaning up...
 ```
 
-## API Documentation: [![Docs.rs][docs-badge]][docs-url]
+## API Documentation:
 
 ## Example
 
