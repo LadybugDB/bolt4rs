@@ -1,15 +1,32 @@
-# Bolt4rs [![CI Status][ci-badge]][ci-url]  [![Crates.io][crates-badge]][crates-url]
+# Bolt4rs [![CI Status][ci-badge]][ci-url]
 
 [ci-badge]: https://github.com/LadybugDB/bolt4rs/actions/workflows/checks.yml/badge.svg
 [ci-url]: https://github.com/LadybugDB/bolt4rs
-[crates-badge]: https://img.shields.io/crates/v/bolt4rs.svg?style=shield
-[crates-url]: https://crates.io/crates/bolt4rs
-[docs-badge]: https://img.shields.io/badge/docs-latest-blue.svg?style=shield
-[docs-url]: https://docs.rs/bolt4rs
 
-`bolt4rs` is a driver for the [Bolt](https://bolt.com/) graph database, written in Rust.
+`bolt4rs` is a driver for the [LadybugDB](https://ladybugdb.com/) graph database, written in Rust.
+It's based on the neo4rs [implementation](https://github.com/neo4j-labs/neo4rs).
 
 `bolt4rs` implements the [bolt specification](https://neo4j.com/docs/bolt/current/bolt/message/#messages-summary-41)
+
+## Testing Ladybug + Bolt4rs
+
+```
+./server/test.sh
+Cleaning up any existing bolt4rs-server process...
+Starting bolt4rs-server...
+Running test client...
+Connecting to Bolt server at 127.0.0.1:7687
+Successfully connected!
+Creating Person table...
+Inserting sample data...
+Querying data...
+Query results:
+Name: Alice, Age: 25
+Name: Bob, Age: 30
+Total rows returned: 2
+Test succeeded!
+Cleaning up...
+```
 
 ## API Documentation: [![Docs.rs][docs-badge]][docs-url]
 
@@ -110,26 +127,6 @@ It is recommended to only run a single integration test and manually clean up th
 ```sh
 env BOLT_TEST_URI=bolt://localhost:7687 BOLT_TEST_USER=bolt BOLT_TEST_PASS=supersecret BOLT_VERSION_TAG=5.8 cargo test --test <name of the integration test, see the file names in lib/tests/>
 ```
-
-##### Using an Aura instance
-
-> [!WARNING]
-> Running the tests will create new data and might change and delete existing data or entire databases.
-> Do not use a production instance.
-
-Running a test against an Aura instance can be done by setting the values as outlined above.
-However, the environment variables used do not match the names that are given in the connection file when an Aura instance is created.
-
-By setting the environment variable `NEO4RS_TEST_ON_AURA` to `1`, the tests will look for the environment variables as they are used in the connection file.
-The tests can then also be run by using a `dotenv` like tool, e.g.
-
-```sh
-dotenvx run -f .auraenv -e NEO4RS_TEST_ON_AURA=1 -- cargo test
-```
-
-> [!NOTE]
-> Some tests might also use features not available on Aura and will fail.
-
 ### Updating `Cargo.lock` files for CI
 
 We have CI tests that verify the MSRV as well as the minimal version of the dependencies.
