@@ -13,7 +13,7 @@ use tokio::{
 use bolt4rs::{
     bolt::{
         response::success,
-        summary::{Failure, Success, Summary},
+        summary::{Success, Summary},
     },
     messages::{BoltRequest, BoltResponse, Record},
     BoltBoolean, BoltFloat, BoltInteger, BoltList, BoltNull, BoltString, BoltType,
@@ -240,11 +240,7 @@ impl<'a> BoltSession<'a> {
                         match conn.query(&final_query) {
                             Err(e) => {
                                 error!("Query error: {}", e);
-                                let summary = Summary::Failure(Failure {
-                                    code: "Neo.ClientError.Statement.ExecutionError".to_string(),
-                                    message: e.to_string(),
-                                });
-                                return Ok(vec![Bytes::from(summary.to_bytes()?)]);
+                                return Err(anyhow::anyhow!("Query error: {}", e));
                             }
                             Ok(result) => {
                                 // Query executed successfully

@@ -4,8 +4,8 @@ FROM rust:latest
 # Set the working directory inside the container
 WORKDIR /app
 
-# Clone the repository into the container
-RUN git clone https://github.com/LadybugDB/bolt4rs .
+# Copy the source code into the container
+COPY . .
 
 # Install lld for linking
 RUN apt-get update && apt-get install -y lld

@@ -1,15 +1,26 @@
 use bolt4rs::*;
+use clap::Parser;
 use std::error::Error;
+
+#[derive(Parser)]
+#[command(name = "test_client")]
+#[command(about = "Test client for Bolt4rs")]
+struct Args {
+    /// The URI of the Bolt server
+    #[arg(default_value = "bolt://127.0.0.1:7687")]
+    uri: String,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let uri = "127.0.0.1:7687";
+    let args = Args::parse();
+    let uri = args.uri;
     let user = "bolt";
     let pass = "test";
 
     env_logger::init();
     println!("Connecting to Bolt server at {}", uri);
-    let graph = Graph::new(uri, user, pass)?;
+    let graph = Graph::new(&uri, user, pass)?;
     println!("Successfully connected!");
 
     println!("Creating Person table...");
