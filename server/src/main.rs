@@ -13,7 +13,7 @@ use tokio::{
 use bolt4rs::{
     bolt::{
         response::success,
-        summary::{Success, Summary},
+        summary::{Failure, Success, Summary},
     },
     messages::{BoltRequest, BoltResponse, Record},
     BoltBoolean, BoltFloat, BoltInteger, BoltList, BoltNull, BoltString, BoltType,
@@ -240,7 +240,15 @@ impl<'a> BoltSession<'a> {
                         match conn.query(&final_query) {
                             Err(e) => {
                                 error!("Query error: {}", e);
-                                return Err(anyhow::anyhow!("Query error: {}", e));
+                                // Send FAILURE response instead of returning error
+                                let failure = bolt4rs::bolt::summary::Failure {
+                                    metadata: success::MetaBuilder::new()
+                                        .code("Bolt.DatabaseError.General.UnknownError")
+                                        .message(format!("Query error: {}", e))
+                                        .build(),
+                                };
+                                let summary = Summary::Failure(failure);
+                                return Ok(vec![Bytes::from(summary.to_bytes()?)]);
                             }
                             Ok(result) => {
                                 // Query executed successfully
