@@ -22,5 +22,8 @@ EXPOSE 7687
 # Set logging level
 ENV RUST_LOG=info
 
-# Command to run the binary
-CMD ["./target/release/bolt4rs-server"]
+# Create directories for mounts
+RUN mkdir -p /app/data /app/logs
+
+# Command to run the binary and log to file
+CMD ["sh", "-c", "./target/release/bolt4rs-server > /app/logs/server.log 2>&1"]

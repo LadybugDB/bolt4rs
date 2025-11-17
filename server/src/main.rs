@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
 }
 
 async fn lbug_init() -> Result<lbug::Database> {
-    let system_db = Database::new("./system", SystemConfig::default())?;
+    let system_db = Database::new("/app/data/system", SystemConfig::default())?;
     debug!("Created system database");
     Ok(system_db)
 }
