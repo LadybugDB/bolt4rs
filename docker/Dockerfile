@@ -1,5 +1,5 @@
-# Use the official Rust image as the base image
-FROM rust:latest
+# Build stage
+FROM rust:latest AS builder
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -16,6 +16,19 @@ RUN apt-get install -y build-essential cmake
 # Build the project in release mode for the specific binaries
 RUN cargo build --release --bin bolt4rs-server --bin test_client
 
+# Runtime stage
+FROM alpine:latest
+
+# Install ca-certificates if needed (for HTTPS, but probably not necessary here)
+RUN apk --no-cache add ca-certificates
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy the built binaries from the builder stage
+COPY --from=builder /app/target/release/bolt4rs-server /app/bolt4rs-server
+COPY --from=builder /app/target/release/test_client /app/test_client
+
 # Expose bolt port
 EXPOSE 7687
 
@@ -26,4 +39,4 @@ ENV RUST_LOG=info
 RUN mkdir -p /app/data /app/logs
 
 # Command to run the binary and log to file
-CMD ["sh", "-c", "./target/release/bolt4rs-server > /app/logs/server.log 2>&1"]
+CMD ["sh", "-c", "./bolt4rs-server > /app/logs/server.log 2>&1"]
