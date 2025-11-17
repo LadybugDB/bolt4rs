@@ -13,8 +13,8 @@ RUN apt-get update && apt-get install -y lld
 # Install build-essential and cmake
 RUN apt-get install -y build-essential cmake
 
-# Build the project in release mode for the specific binary
-RUN cargo build --release --bin bolt4rs-server
+# Build the project in release mode for the specific binaries
+RUN cargo build --release --bin bolt4rs-server --bin test_client
 
 # Expose bolt port
 EXPOSE 7687

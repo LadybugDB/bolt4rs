@@ -13,7 +13,7 @@ use tokio::{
 use bolt4rs::{
     bolt::{
         response::success,
-        summary::{Success, Summary},
+        summary::{Failure, Success, Summary},
     },
     messages::{BoltRequest, BoltResponse, Record},
     BoltBoolean, BoltFloat, BoltInteger, BoltList, BoltNull, BoltString, BoltType,
@@ -25,8 +25,8 @@ const MAX_CHUNK_SIZE: usize = 65_535;
 async fn main() -> Result<()> {
     env_logger::init();
     let system_db = Arc::new(lbug_init().await?);
-    let listener = TcpListener::bind("127.0.0.1:7687").await?;
-    debug!("Bolt server listening on 127.0.0.1:7687");
+    let listener = TcpListener::bind("0.0.0.0:7687").await?;
+    debug!("Bolt server listening on 0.0.0.0:7687");
 
     loop {
         let (socket, addr) = listener.accept().await?;
@@ -240,7 +240,11 @@ impl<'a> BoltSession<'a> {
                         match conn.query(&final_query) {
                             Err(e) => {
                                 error!("Query error: {}", e);
-                                return Err(anyhow::anyhow!("Query error"));
+                                let summary = Summary::Failure(Failure {
+                                    code: "Neo.ClientError.Statement.ExecutionError".to_string(),
+                                    message: e.to_string(),
+                                });
+                                return Ok(vec![Bytes::from(summary.to_bytes()?)]);
                             }
                             Ok(result) => {
                                 // Query executed successfully
