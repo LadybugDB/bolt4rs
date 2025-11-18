@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-rm -rf system
+rm -rf data/system
 
 # Kill any existing bolt4rs-server process
 echo "Cleaning up any existing bolt4rs-server process..."
@@ -19,6 +19,12 @@ SERVER_PID=$!
 echo "Waiting for server to start..."
 sleep 2
 
+# Check if server is still running
+if ! kill -0 $SERVER_PID 2>/dev/null; then
+    echo "Server failed to start!"
+    exit 1
+fi
+
 # Run the test client
 echo "Running test client..."
 if cargo run --bin test_client; then
@@ -30,8 +36,7 @@ else
 fi
 
 # Cleanup
-echo "Cleaning up..."
-kill $SERVER_PID || true
-wait $SERVER_PID 2>/dev/null || true
+echo "Shutting down server..."
+cargo run --bin test_client -- --shutdown || true
 
 exit $EXIT_CODE
