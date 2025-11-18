@@ -28,6 +28,7 @@ COPY --from=builder /app/target/release/test_client /app/test_client
 
 # Expose bolt port
 EXPOSE 7687
+EXPOSE 7688
 
 # Set logging level
 ENV RUST_LOG=info

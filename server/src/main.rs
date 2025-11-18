@@ -28,17 +28,49 @@ async fn main() -> Result<()> {
     let listener = TcpListener::bind("0.0.0.0:7687").await?;
     debug!("Bolt server listening on 0.0.0.0:7687");
 
-    loop {
-        let (socket, addr) = listener.accept().await?;
-        debug!("New connection from {}", addr);
+    let control_listener = TcpListener::bind("0.0.0.0:7688").await?;
+    debug!("Control plane listening on 0.0.0.0:7688");
 
-        let db = system_db.clone();
-        tokio::spawn(async move {
-            if let Err(e) = handle_connection(&db, socket).await {
-                error!("Connection error: {}", e);
+    loop {
+        tokio::select! {
+            res = listener.accept() => {
+                match res {
+                    Ok((socket, addr)) => {
+                        debug!("New connection from {}", addr);
+                        let db = system_db.clone();
+                        tokio::spawn(async move {
+                            if let Err(e) = handle_connection(&db, socket).await {
+                                error!("Connection error: {}", e);
+                            }
+                        });
+                    }
+                    Err(e) => error!("Accept error: {}", e),
+                }
             }
-        });
+            res = control_listener.accept() => {
+                match res {
+                    Ok((mut socket, addr)) => {
+                        debug!("Control connection from {}", addr);
+                        let mut buf = [0; 1024];
+                        match socket.read(&mut buf).await {
+                            Ok(n) if n > 0 => {
+                                let command = String::from_utf8_lossy(&buf[..n]);
+                                if command.trim() == "SHUTDOWN" {
+                                    debug!("Shutdown command received");
+                                    let _ = socket.write_all(b"OK").await;
+                                    break;
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    Err(e) => error!("Control accept error: {}", e),
+                }
+            }
+        }
     }
+    debug!("Server shutting down");
+    Ok(())
 }
 
 async fn lbug_init() -> Result<lbug::Database> {
