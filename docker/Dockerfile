@@ -39,4 +39,4 @@ ENV RUST_LOG=info
 RUN mkdir -p /app/data /app/logs
 
 # Command to run the binary and log to file
-CMD ["sh", "-c", "./bolt4rs-server > /app/logs/server.log 2>&1"]
+CMD ["sh", "-c", "cd /app && ./bolt4rs-server > /app/logs/server.log 2>&1"]
