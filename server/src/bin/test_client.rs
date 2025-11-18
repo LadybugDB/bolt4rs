@@ -7,7 +7,7 @@ use std::error::Error;
 #[command(about = "Test client for Bolt4rs")]
 struct Args {
     /// The URI of the Bolt server
-    #[arg(default_value = "bolt://127.0.0.1:7687")]
+    #[arg(default_value = "127.0.0.1:7687")]
     uri: String,
 }
 

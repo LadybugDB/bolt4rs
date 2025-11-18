@@ -43,9 +43,13 @@ pub struct Failure {
 }
 
 impl Failure {
+    pub fn new(code: String, message: String) -> Self {
+        Self { code, message }
+    }
+
     pub fn into_error(self) -> crate::errors::Error {
         let Self { code, message } = self;
-        crate::errors::Error::Bolt(crate::errors::BoltError::new(code, message))
+        crate::Error::Bolt(crate::errors::BoltError::new(code, message))
     }
 }
 

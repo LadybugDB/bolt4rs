@@ -13,7 +13,7 @@ use tokio::{
 use bolt4rs::{
     bolt::{
         response::success,
-        summary::{Failure, Success, Summary},
+        summary::{Success, Summary},
     },
     messages::{BoltRequest, BoltResponse, Record},
     BoltBoolean, BoltFloat, BoltInteger, BoltList, BoltNull, BoltString, BoltType,
@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
 }
 
 async fn lbug_init() -> Result<lbug::Database> {
-    let system_db = Database::new("/app/data/system", SystemConfig::default())?;
+    let system_db = Database::new("./data/system", SystemConfig::default())?;
     debug!("Created system database");
     Ok(system_db)
 }
@@ -241,13 +241,11 @@ impl<'a> BoltSession<'a> {
                             Err(e) => {
                                 error!("Query error: {}", e);
                                 // Send FAILURE response instead of returning error
-                                let failure = bolt4rs::bolt::summary::Failure {
-                                    metadata: success::MetaBuilder::new()
-                                        .code("Bolt.DatabaseError.General.UnknownError")
-                                        .message(format!("Query error: {}", e))
-                                        .build(),
-                                };
-                                let summary = Summary::Failure(failure);
+                                let failure = bolt4rs::bolt::summary::Failure::new(
+                                    "Bolt.DatabaseError.General.UnknownError".to_string(),
+                                    format!("Query error: {}", e),
+                                );
+                                let summary: Summary<success::Meta> = Summary::Failure(failure);
                                 return Ok(vec![Bytes::from(summary.to_bytes()?)]);
                             }
                             Ok(result) => {
