@@ -10,8 +10,8 @@ WORKDIR /app
 # Copy the source code into the container
 COPY . .
 
-# Build the project in release mode for the specific binaries with musl target
-RUN cargo build --release --target x86_64-unknown-linux-musl --bin bolt4rs-server --bin test_client
+# Build the project in release mode for the specific binaries
+RUN cargo build --release --bin bolt4rs-server --bin test_client
 
 # Runtime stage
 FROM alpine:latest
@@ -23,8 +23,8 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /app
 
 # Copy the built binaries from the builder stage
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/bolt4rs-server /app/bolt4rs-server
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/test_client /app/test_client
+COPY --from=builder /app/target/release/bolt4rs-server /app/bolt4rs-server
+COPY --from=builder /app/target/release/test_client /app/test_client
 
 # Expose bolt port
 EXPOSE 7687
