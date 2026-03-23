@@ -52,7 +52,7 @@ fn update_msrv_lock() -> Result {
 
     let msrv = {
         let metadata = cmd!(sh, "{cargo} metadata --no-deps --format-version=1").read()?;
-        let package = "neo4rs";
+        let package = "bolt4rs";
 
         cmd!(
             sh,
@@ -65,17 +65,16 @@ fn update_msrv_lock() -> Result {
     cmd!(sh, "rm {lockfile}").run_if(dry_run)?;
 
     let pin_versions: &[(String, &str)] = &[
-        ("home".to_owned(), "0.5.9"),
-        ("litemap".to_owned(), "0.7.4"),
-        ("testcontainers".to_owned(), "0.23.1"),
-        ("testcontainers-modules".to_owned(), "0.11.4"),
-        ("zerofrom".to_owned(), "0.1.5"),
+        ("backon".to_owned(), "1.5.2"),
+        ("idna_adapter".to_owned(), "1.2.0"),
+        ("litemap".to_owned(), "0.7.5"),
+        ("home".to_owned(), "0.5.11"),
     ];
     for (krate, version) in pin_versions {
         pin_version(dry_run, &sh, &cargo, krate, version)?;
     }
 
-    cmd!(sh, "cargo +{msrv} test --no-run --all-features").run_if(dry_run)?;
+    cmd!(sh, "{cargo} +{msrv} test --no-run --all-features").run_if(dry_run)?;
 
     cmd!(sh, "cp {lockfile} {ci_dir}/Cargo.lock.msrv").run_if(dry_run)?;
 
@@ -96,12 +95,10 @@ fn update_min_lock() -> Result {
     cmd!(sh, "rm {lockfile}").run_if(dry_run)?;
 
     let pin_versions: &[(String, &str)] = &[
-        ("home".to_owned(), "0.5.9"),
-        ("litemap".to_owned(), "0.7.4"),
-        ("serde_repr".to_owned(), "0.1.5"),
-        ("testcontainers".to_owned(), "0.23.1"),
-        ("testcontainers-modules".to_owned(), "0.11.4"),
-        ("zerofrom".to_owned(), "0.1.5"),
+        ("backon".to_owned(), "1.5.2"),
+        ("idna_adapter".to_owned(), "1.2.0"),
+        ("litemap".to_owned(), "0.7.5"),
+        ("home".to_owned(), "0.5.11"),
     ];
     for (krate, version) in pin_versions {
         pin_version(dry_run, &sh, &cargo, krate, version)?;
@@ -109,7 +106,7 @@ fn update_min_lock() -> Result {
 
     cmd!(
         sh,
-        "cargo +nightly -Z minimal-versions test --no-run --all-features"
+        "{cargo} +nightly -Z minimal-versions test --no-run --all-features"
     )
     .env("RUST_LOG", "debug")
     .run_if(dry_run)?;

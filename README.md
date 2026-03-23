@@ -66,7 +66,7 @@ Cleaning up...
 
 ## MSRV
 
-The crate has a minimum supported Rust version (MSRV) of `1.75.0` as of 0.9.x.
+The crate has a minimum supported Rust version (MSRV) of `1.81.0` as of 0.9.x.
 The version [0.8.x](https://crates.io/crates/bolt4rs/0.8.0) has an MSRV of `1.63.0`
 
 A change in the MSRV in *not* considered a breaking change.
