@@ -13,7 +13,7 @@ documentation = "https://docs.rs/bolt4rs"
 readme = "../README.md"
 keywords = ["bolt", "driver", "bolt", "cypher", "tokio"]
 categories = ["database", "network-programming", "asynchronous"]
-rust-version = "1.75.0"
+rust-version = "1.81"
 
 [features]
 default = ["unstable-bolt-protocol-impl-v2"]
