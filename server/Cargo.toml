@@ -21,7 +21,7 @@ env_logger = "0.10"
 bolt4rs = { path = "../lib", features = ["unstable-bolt-protocol-impl-v2", "unstable-serde-packstream-format"] }
 anyhow = "1.0"
 clap = { version = ">=4.4, <=4.5.56", features = ["derive"] }
-lbug = { version = "^0.15.2", features = ["arrow"] }
+lbug = { version = "^0.16.0", features = ["arrow"] }
 arrow-array = { version = "55.0.0", default-features = false }
 arrow = { version = "55.0.0", default-features = false }
 arrow-schema = { version = "55.0.0", default-features = false }
