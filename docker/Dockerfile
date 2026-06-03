@@ -1,8 +1,14 @@
 # Build stage
-FROM rust:alpine AS builder
+FROM rust:slim-trixie AS builder
 
-# Install musl-dev and build tools for static linking
-RUN apk add --no-cache musl-dev build-base lld cmake
+# Install build tools plus the downloader dependencies used by the lbug crate.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    build-essential \
+    ca-certificates \
+    curl \
+    lld \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -10,14 +16,21 @@ WORKDIR /app
 # Copy the source code into the container
 COPY . .
 
-# Build the project in release mode for the specific binaries
-RUN cargo build --release --bin bolt4rs-server --bin test_client
+# Build against the self-contained static liblbug archive matching the Cargo dependency.
+RUN set -eux; \
+    LBUG_VERSION="$(sed -n 's/^lbug = .*version = "[>=<~^ ]*\([0-9][^", ]*\)".*/\1/p' server/Cargo.toml)"; \
+    test -n "$LBUG_VERSION"; \
+    export LBUG_VERSION; \
+    cargo build --release --bin bolt4rs-server --bin test_client
 
 # Runtime stage
-FROM alpine:latest
+FROM debian:trixie-slim
 
-# Install ca-certificates if needed (for HTTPS, but probably not necessary here)
-RUN apk --no-cache add ca-certificates
+# Install runtime dependencies for the C++ runtime linked by the server binary.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory inside the container
 WORKDIR /app
