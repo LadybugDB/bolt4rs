@@ -74,7 +74,8 @@ async fn main() -> Result<()> {
 }
 
 async fn lbug_init() -> Result<lbug::Database> {
-    let system_db = Database::new("./data/system", SystemConfig::default())?;
+    let config = SystemConfig::default().enable_multi_writes(true);
+    let system_db = Database::new("./data/system", config)?;
     debug!("Created system database");
     Ok(system_db)
 }
